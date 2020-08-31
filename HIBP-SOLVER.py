@@ -177,12 +177,17 @@ if __name__ == '__main__':
     # load E for primary beamline
     E_prim, edges_prim = hb.read_E('prim', geomT15)
     geomT15.plates_edges.update(edges_prim)
+    print('Primary Beamline loaded')
 
-    E_sec, edges_sec = hb.read_E('sec', geomT15)
-    geomT15.plates_edges.update(edges_sec)
+    # load E for secondary beamline
+    try:
+        E_sec, edges_sec = hb.read_E('sec', geomT15)
+        geomT15.plates_edges.update(edges_sec)
+    except FileNotFoundError:
+        print('Secondary Beamline NOT FOUND')
+        E_sec = []
 
     E = E_prim + E_sec
-    # E = E_prim
 
 # %% Load Magnetic Field
     ''' Magnetic field part '''

@@ -9,7 +9,7 @@ coildata.py
 laplase_class.py
 test_classOld.py
 
-# side files and folders
+# Side files and folders
 magfield
 elecfield
 tests
@@ -17,6 +17,8 @@ trash
 backup
 output
 *.png
+*.doc
+*.docx
 
 # C extensions
 *.so
