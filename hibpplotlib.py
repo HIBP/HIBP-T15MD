@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Feb 15 16:01:34 2019
 
-@author: user
-"""
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -17,6 +13,7 @@ import pylab
 import os
 from scipy.stats import gaussian_kde
 from itertools import cycle
+import alphashape
 
 # %%
 '''
@@ -506,21 +503,9 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
-    # plot T-15 camera, coils and separatrix on XY plane
-    geom.plot_geom(ax1)
-
-    # plot plates
-    geom.plot_plates(ax1, axes='XY')
-    geom.plot_plates(ax2, axes='XZ')
-
-    # plot aim dot
-    geom.plot_aim(ax1, axes='XY')
-    geom.plot_aim(ax2, axes='XZ')
-
-    # plot slit dot
-    geom.plot_slit(ax1, axes='XY')
-    geom.plot_slit(ax2, axes='XZ')
-
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY')
+    geom.plot_geom(ax2, axes='XZ')
     # plot slits
     if plot_slits:
         geom.plot_slits(ax1, axes='XY')
@@ -567,11 +552,11 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
     :return: None
     '''
 
-    # fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
-    fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+    # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
-    # set_axes_param(ax2, 'X (m)', 'Z (m)')
+    set_axes_param(ax2, 'X (m)', 'Z (m)')
     set_axes_param(ax3, 'Z (m)', 'Y (m)')
 
     # get color cycler
@@ -581,31 +566,18 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
     # get marker cycler
     markers = cycle(('o', 'v', '^', '<', '>', '*', 'D', 'P', 'd'))
 
-    # plot T-15 camera, coils and separatrix on XY plane
-    geom.plot_geom(ax1)
-
-    # plot plates
-    geom.plot_plates(ax1, axes='XY')
-    # geom.plot_plates(ax2, axes='XZ')
-    geom.plot_plates(ax3, axes='ZY')
-
-    # plot aim dot
-    geom.plot_aim(ax1, axes='XY')
-    # geom.plot_aim(ax2, axes='XZ')
-    geom.plot_aim(ax3, axes='ZY')
-
-    # plot slit dot
-    geom.plot_slit(ax1, axes='XY')
-    # geom.plot_slit(ax2, axes='XZ')
-    geom.plot_slit(ax3, axes='ZY')
-
-    ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'
-                  .format(Ebeam, Btor, Ipl))
-
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY')
+    geom.plot_geom(ax2, axes='XZ')
+    geom.plot_geom(ax3, axes='ZY')
     # plot slits
     if plot_slits:
         geom.plot_slits(ax1, axes='XY')
+        geom.plot_slits(ax2, axes='XZ')
         geom.plot_slits(ax3, axes='ZY')
+
+    ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'
+                  .format(Ebeam, Btor, Ipl))
 
     # invert Z ax
     # ax3.invert_xaxis()
@@ -626,13 +598,13 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
                 # plot primary
                 tr.plot_prim(ax1, axes='XY', color='k',
                              full_primary=full_primary)
-                # tr.plot_prim(ax2, axes='XZ', color='k',
-                #              full_primary=full_primary)
+                tr.plot_prim(ax2, axes='XZ', color='k',
+                             full_primary=full_primary)
                 tr.plot_prim(ax3, axes='ZY', color='k',
                              full_primary=full_primary)
                 # plot fan of secondaries
                 tr.plot_fan(ax1, axes='XY', color=sec_color)
-                # tr.plot_fan(ax2, axes='XZ', color=sec_color)
+                tr.plot_fan(ax2, axes='XZ', color=sec_color)
                 tr.plot_fan(ax3, axes='ZY', color=sec_color)
 
             if plot_last_points:
@@ -646,8 +618,8 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
                 ax1.scatter(last_points[:, 0], last_points[:, 1],
                             marker=marker, c='w', edgecolors=sec_color,
                             label='E={:.1f}, UA2={:.1f}'.format(Ebeam, UA2))
-                # ax2.plot(last_points[:, 0], last_points[:, 2],
-                #          '--o', c=sec_color, mfc='w', mec=sec_color)
+                ax2.plot(last_points[:, 0], last_points[:, 2],
+                         '--o', c=sec_color, mfc='w', mec=sec_color)
                 ax3.plot(last_points[:, 2], last_points[:, 1],
                          '--', c=sec_color)
                 ax3.scatter(last_points[:, 2], last_points[:, 1],
@@ -678,28 +650,16 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
-    # plot T-15 camera, coils and separatrix on XY plane
-    geom.plot_geom(ax1)
-
-    # plot plates
-    geom.plot_plates(ax1, axes='XY')
-    geom.plot_plates(ax2, axes='XZ')
-
-    # plot aim dot
-    geom.plot_aim(ax1, axes='XY')
-    geom.plot_aim(ax2, axes='XZ')
-
-    # plot slit dot
-    geom.plot_slit(ax1, axes='XY')
-    geom.plot_slit(ax2, axes='XZ')
-
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY')
+    geom.plot_geom(ax2, axes='XZ')
     # plot slits
     if plot_slits:
         geom.plot_slits(ax1, axes='XY')
         geom.plot_slits(ax2, axes='XZ')
+
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
 
     A2list = []
     det_line_x = []
@@ -756,16 +716,9 @@ def plot_grid(traj_list, geom, Btor, Ipl,
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
-    # plot T-15 camera, coils and separatrix on XY plane
-    geom.plot_geom(ax1)
-
-    # plot plates
-    geom.plot_plates(ax1, axes='XY')
-    geom.plot_plates(ax2, axes='XZ')
-
-    # plot aim dot
-    geom.plot_aim(ax1, axes='XY')
-    geom.plot_aim(ax2, axes='XZ')
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY')
+    geom.plot_geom(ax2, axes='XZ')
 
     # get the list of A2 and Ebeam
     A2list = []
@@ -841,6 +794,7 @@ def plot_grid(traj_list, geom, Btor, Ipl,
 
 # %%
 def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
+
     # fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
     fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
@@ -850,11 +804,9 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
                   .format(tr.Ebeam, tr.U[0], Btor, Ipl))
 
-    # plot T-15 camera, coils and separatrix on XY plane
-    geom.plot_geom(ax1)
-    # plot plates
-    geom.plot_plates(ax1, axes='XY')
-    geom.plot_plates(ax3, axes='ZY')
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY', plot_aim=False)
+    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
 
     n_slits = geom.slits_edges.shape[0]
     # set color cycler
@@ -907,6 +859,166 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     if plot_flux:
         Psi_vals, x_vals, y_vals, bound_flux = hb.import_Bflux('1MA_sn.txt')
         ax1.contour(x_vals, y_vals, Psi_vals, 100)
+
+
+# %%
+def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
+
+    # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+
+    set_axes_param(ax1, 'X (m)', 'Y (m)')
+    set_axes_param(ax2, 'X (m)', 'Z (m)')
+    set_axes_param(ax3, 'Z (m)', 'Y (m)')
+    tr = fat_beam_list[0]
+    ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
+                  .format(tr.Ebeam, tr.U[0], Btor, Ipl))
+
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY', plot_aim=False)
+    geom.plot_geom(ax2, axes='XZ', plot_aim=False)
+    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
+
+    # get number of slits
+    n_slits = geom.slits_edges.shape[0]
+    # set color cycler
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    colors = colors[:n_slits]
+
+    if n_slit == 'all':
+        slits = range(n_slits)
+    else:
+        slits = [n_slit]
+
+    # draw slits
+    for i in range(n_slits):
+        c = colors[i]
+        geom.plot_slits(ax1, axes='XY', color=c, n_slit=i)
+        geom.plot_slits(ax2, axes='XZ', color=c, n_slit=i)
+        geom.plot_slits(ax3, axes='ZY', color=c, n_slit=i)
+
+    # plot trajectories
+    for tr in fat_beam_list:
+        # plot primary trajectory
+        tr.plot_prim(ax1, axes='XY', color='k', full_primary=True)
+        tr.plot_prim(ax2, axes='XZ', color='k', full_primary=False)
+        tr.plot_prim(ax3, axes='ZY', color='k', full_primary=True)
+        # plot first point
+        ax1.plot(tr.RV0[0, 0], tr.RV0[0, 1], 'o',
+                 color='k', markerfacecolor='white')
+        ax2.plot(tr.RV0[0, 0], tr.RV0[0, 2], 'o',
+                 color='k', markerfacecolor='white')
+        ax3.plot(tr.RV0[0, 2], tr.RV0[0, 1], 'o',
+                 color='k', markerfacecolor='white')
+
+        # plot secondaries
+        for i in slits:
+            c = colors[i]
+            for fan_tr in tr.RV_sec_toslits[i]:
+                ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color=c)
+                ax2.plot(fan_tr[:, 0], fan_tr[:, 2], color=c)
+                ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color=c)
+
+                # plot zones
+                ax1.plot(fan_tr[0, 0], fan_tr[0, 1], 'o', color=c,
+                         markerfacecolor='white')
+                ax2.plot(fan_tr[0, 0], fan_tr[0, 2], 'o', color=c,
+                         markerfacecolor='white')
+                ax3.plot(fan_tr[0, 2], fan_tr[0, 1], 'o', color=c,
+                         markerfacecolor='white')
+
+
+# %%
+def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
+             plot_prim=True, plot_sec=False, plot_zones=True, plot_cut=False,
+              alpha_xy=10, alpha_zy=20):
+
+    fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
+
+    set_axes_param(ax1, 'X (m)', 'Y (m)')
+    # set_axes_param(ax2, 'X (m)', 'Z (m)')
+    set_axes_param(ax3, 'Z (m)', 'Y (m)')
+    tr = fat_beam_list[0]
+    ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
+                  .format(tr.Ebeam, tr.U[0], Btor, Ipl))
+
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY', plot_aim=False)
+    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
+
+    # get number of slits
+    n_slits = geom.slits_edges.shape[0]
+    # set color cycler
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    colors = colors[:n_slits]
+
+    # plot trajectories
+    for tr in fat_beam_list:
+        # plot primary trajectory
+        if plot_prim:
+            tr.plot_prim(ax1, axes='XY', color='k', full_primary=True)
+            tr.plot_prim(ax3, axes='ZY', color='k', full_primary=True)
+        # plot secondaries
+        if plot_sec:
+            for i in range(n_slits):
+                c = colors[i]
+                for fan_tr in tr.RV_sec_toslits[i]:
+                    ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color=c)
+                    ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color=c)
+
+    if n_slit == 'all':
+        slits = range(n_slits)
+    else:
+        slits = [n_slit]
+
+    # draw slits
+    for i in range(n_slits):
+        c = colors[i]
+        geom.plot_slits(ax1, axes='XY', color=c, n_slit=i)
+        geom.plot_slits(ax3, axes='ZY', color=c, n_slit=i)
+
+    # plot sample volumes
+    for i in slits:
+        c = colors[i]
+        coords = np.empty([0, 3])
+        coords_first = np.empty([0, 3])
+        coords_last = np.empty([0, 3])
+        for tr in fat_beam_list:
+            # skip empty arrays
+            if tr.ion_zones[i].shape[0] == 0:
+                continue
+            coords_first = np.vstack([coords_first, tr.ion_zones[i][0, 0:3]])
+            coords_last = np.vstack([coords_last, tr.ion_zones[i][-1, 0:3]])
+            # plot zones of each filament
+            if plot_zones:
+                ax1.plot(tr.ion_zones[i][:, 0], tr.ion_zones[i][:, 1],
+                         'o', color=c, markerfacecolor='white')
+                ax3.plot(tr.ion_zones[i][:, 2], tr.ion_zones[i][:, 1],
+                         'o', color=c, markerfacecolor='white')
+
+        if plot_cut:
+            coords = np.vstack([coords_first, coords_last[::-1]])
+            coords = np.vstack([coords, coords[0, :]])
+            # ploy in XY plane
+            ax1.fill(coords[:, 0], coords[:, 1], '--', color=c)
+            ax1.plot(coords[:, 0], coords[:, 1], color='k', lw=0.5)
+            # plot in ZY plane
+            ax3.fill(coords[:, 2], coords[:, 1], '--', color=c)
+            ax3.plot(coords[:, 2], coords[:, 1], color='k', lw=0.5)
+        else:
+            coords = np.vstack([coords_first, coords_last])
+            # ploy in XY plane
+            hull_xy = alphashape.alphashape(coords[:, [0, 1]], alpha_xy)
+            hull_pts_xy = hull_xy.exterior.coords.xy
+            ax1.fill(hull_pts_xy[0], hull_pts_xy[1], '--', color=c)
+            ax1.plot(hull_pts_xy[0], hull_pts_xy[1], color='k', lw=0.5)
+            # plot in ZY plane
+            hull_zy = alphashape.alphashape(coords[:, [2, 1]], alpha_zy)
+            hull_pts_zy = hull_zy.exterior.coords.xy
+            ax3.fill(hull_pts_zy[0], hull_pts_zy[1], '--', color=c)
+            ax3.plot(hull_pts_zy[0], hull_pts_zy[1], color='k', lw=0.5)
 
 
 # %%

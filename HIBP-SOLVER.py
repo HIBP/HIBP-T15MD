@@ -36,11 +36,13 @@ if __name__ == '__main__':
     UA3 = 10.0  # [kV]
     dUA3 = 5.0  # [kV/m]
 
-    r_plasma = 0.8
-    elon = 1.9
-
 # %% PRIMARY beamline geometry
     geomT15 = hb.Geometry()
+
+    # plasma parameters
+    geomT15.R = 1.5  # tokamak major radius [m]
+    geomT15.r_plasma = 0.6  # plasma minor radius [m]
+    geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
     alpha_prim = 20.
@@ -48,17 +50,17 @@ if __name__ == '__main__':
     gamma_prim = 0.
     geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
 
-    # coordinates of the injection pipe [m]
+    # coordinates of the injection port [m]
     xpatr = 1.5 + 0.726
     ypatr = 1.064
     zpatr = 0.0
     geomT15.r_dict['patr'] = np.array([xpatr, ypatr, zpatr])
 
-    # distance from the injection pipe to the Alpha2 plates
+    # distance from the injection port to the Alpha2 plates
     dist_A2 = 0.35  # [m]
-    # distance from the injection pipe to the Beta2 plates
+    # distance from the injection port to the Beta2 plates
     dist_B2 = dist_A2 + 0.3  # [m]
-    # distance from the injection pipe to the initial piont of the traj [m]
+    # distance from the injection port to the initial piont of the traj [m]
     dist_0 = dist_B2 + 0.2
 
     # convert degrees to radians
@@ -214,8 +216,7 @@ if __name__ == '__main__':
                          U_list, dt)
 
             tr = hb.optimize_B2(tr, r_aim, geomT15, UB2, dUB2, E, B, dt,
-                                stop_plane_n, r_plasma, elon,
-                                eps_xy=1e-3, eps_z=1e-3)
+                                stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
 
             if tr.IntersectGeometry:
                 print('NOT saved, primary intersected geometry')
@@ -223,6 +224,9 @@ if __name__ == '__main__':
             if tr.IsAimXY and tr.IsAimZ:
                 traj_list.append(tr)
                 print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U[1]))
+                UB2 = tr.U[1]
+            else:
+                print('NOT saved, sth wrong')
 
 # %%
     traj_list_passed = copy.deepcopy(traj_list)
@@ -247,6 +251,9 @@ if __name__ == '__main__':
                               eps_xy=1e-3, eps_z=1e-3)
         if not tr.IntersectGeometrySec:
             traj_list_oct.append(tr)
+            print('\n Trajectory saved')
+            UA3 = tr.U[2]
+            UB3 = tr.U[3]
 
 # %%
     hbplot.plot_traj(traj_list_oct, geomT15, 240., 40., Btor, Ipl)

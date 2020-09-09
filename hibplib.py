@@ -181,8 +181,7 @@ class Traj():
         self.tag_sec = tag_column
 
     def pass_fan(self, r_aim, E_interp, B_interp, geom,
-                 stop_plane_n=np.array([1, 0, 0]),
-                 r_plasma=0.6, elon=1.8, eps_xy=1e-3, eps_z=1e-3,
+                 stop_plane_n=np.array([1, 0, 0]), eps_xy=1e-3, eps_z=1e-3,
                  no_intersect=False, no_out_of_bounds=False):
         ''' passing fan from initial point self.RV0
         geom - geometry object
@@ -199,8 +198,8 @@ class Traj():
 
         # check eliptical radius of particle:
         # 1.5 m - major radius of a torus, elon - size along Y
-        mask = np.sqrt((self.RV_prim[:, 0] - 1.5)**2 +
-                       (self.RV_prim[:, 1] / elon)**2) <= r_plasma
+        mask = np.sqrt((self.RV_prim[:, 0] - geom.R)**2 +
+                       (self.RV_prim[:, 1] / geom.elon)**2) <= geom.r_plasma
         self.tag_prim[mask] = 11
 
         # list of initial points of secondary trajectories:
@@ -296,6 +295,10 @@ class Geometry():
         # arrays for primary and secondary beamline angles:
         self.prim_angles = np.array([])
         self.sec_angles = np.array([])
+        # plasma geometry
+        self.R = 0
+        self.r_plasma = 0
+        self.elon = 0
 
     def check_chamb_ent_intersect(self, point1, point2):
         ''' check the intersection between segment 1->2 and chamber entrance
@@ -379,42 +382,41 @@ class Geometry():
         self.slit_plane_n = slit_plane_n
         self.slits_spot = slits_spot
 
-    def plot_geom(self, ax, major_radius=1.5, plot_sep=True):
+    def plot_geom(self, ax, axes='XY', plot_sep=True, plot_aim=True):
         '''
-        plot toroidal and poloidal field coils, camera and
-        separatrix in XY plane
+        plot tokamak, plates, aim dot and central slit dot
         '''
-        # plot toroidal coil
-        ax.plot(self.coil[:, 0], self.coil[:, 1], '--', color='k')
-        ax.plot(self.coil[:, 2], self.coil[:, 3], '--', color='k')
+        # plot toroidal and poloidal field coils, camera and
+        # separatrix in XY plane
+        if axes == 'XY':
+            # plot toroidal coil
+            ax.plot(self.coil[:, 0], self.coil[:, 1], '--', color='k')
+            ax.plot(self.coil[:, 2], self.coil[:, 3], '--', color='k')
 
-        # get T-15 camera and plasma contours
-        ax.plot(self.camera[:, 0] + major_radius, self.camera[:, 1],
-                color='tab:blue')
+            # get tokamak camera and plasma contours
+            for i in range(self.camera.shape[0]):
+                ax.plot(self.camera[i, [3, 0]],
+                        self.camera[i, [4, 1]], color='tab:blue')
 
-        # plot first wall
-        ax.plot(self.in_fw[:, 0], self.in_fw[:, 1], color='k')
-        ax.plot(self.out_fw[:, 0], self.out_fw[:, 1], color='k')
+            # plot first wall
+            ax.plot(self.in_fw[:, 0], self.in_fw[:, 1], color='k')
+            ax.plot(self.out_fw[:, 0], self.out_fw[:, 1], color='k')
 
-        if plot_sep:
-            ax.plot(self.sep[:, 0] + major_radius, self.sep[:, 1],
-                    color='b')  # 'tab:orange')
+            if plot_sep:
+                ax.plot(self.sep[:, 0], self.sep[:, 1], 'o', markersize=2,
+                        color='b')  # 'tab:orange')
 
-        for coil in self.pf_coils.keys():
-            xc = self.pf_coils[coil][0]
-            yc = self.pf_coils[coil][1]
-            dx = self.pf_coils[coil][2]
-            dy = self.pf_coils[coil][3]
-            ax.add_patch(Rectangle((xc-dx/2, yc-dy/2), dx, dy,
-                                   linewidth=1, edgecolor='tab:gray',
-                                   facecolor='tab:gray'))
+            for coil in self.pf_coils.keys():
+                xc = self.pf_coils[coil][0]
+                yc = self.pf_coils[coil][1]
+                dx = self.pf_coils[coil][2]
+                dy = self.pf_coils[coil][3]
+                ax.add_patch(Rectangle((xc-dx/2, yc-dy/2), dx, dy,
+                                       linewidth=1, edgecolor='tab:gray',
+                                       facecolor='tab:gray'))
 
-    def plot_plates(self, ax, axes='XY'):
-        '''plot plates
-        axes='XY', 'XZ', 'ZY'
-        '''
-        axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
-        index_X, index_Y = axes_dict[axes]
+        index_X, index_Y = get_index(axes)
+        # plot plates
         for name in self.plates_edges.keys():
             ax.fill(self.plates_edges[name][0][:, index_X],
                     self.plates_edges[name][0][:, index_Y], fill=False,
@@ -423,36 +425,41 @@ class Geometry():
                     self.plates_edges[name][1][:, index_Y], fill=False,
                     hatch='/', linewidth=2)
 
-    def plot_aim(self, ax, axes='XY', color='r'):
-        ''' plot aim dot
-        '''
-        axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
-        index_X, index_Y = axes_dict[axes]
-        ax.plot(self.r_dict['aim'][index_X], self.r_dict['aim'][index_Y],
-                '*', color=color)
+        if plot_aim:
+            # plot aim dot
+            ax.plot(self.r_dict['aim'][index_X], self.r_dict['aim'][index_Y],
+                    '*', color='r')
+            # plot the center of the central slit
+            ax.plot(self.r_dict['slit'][index_X], self.r_dict['slit'][index_Y],
+                    '*', color='g')
 
-    def plot_slit(self, ax, axes='XY', color='g'):
-        ''' plot slit dot
-        '''
-        axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
-        index_X, index_Y = axes_dict[axes]
-        ax.plot(self.r_dict['slit'][index_X], self.r_dict['slit'][index_Y],
-                '*', color=color)
-
-    def plot_slits(self, ax, axes='XY'):
+    def plot_slits(self, ax, axes='XY', color='g', n_slit='all'):
         ''' plot slits contours
         '''
-        axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
-        index_X, index_Y = axes_dict[axes]
+        index_X, index_Y = get_index(axes)
 
         r_slits = self.slits_edges
-        n_slits = r_slits.shape[0]
-        for i in range(n_slits):
+        if n_slit == 'all':
+            slits = range(r_slits.shape[0])
+        else:
+            slits = [n_slit]
+
+        for i in slits:
             # plot center
-            ax.plot(r_slits[i, 0, index_X], r_slits[i, 0, index_Y], '*')
+            ax.plot(r_slits[i, 0, index_X], r_slits[i, 0, index_Y],
+                    '*', color=color)
             # plot edge
             ax.fill(r_slits[i, 1:, index_X], r_slits[i, 1:, index_Y],
                     fill=False)
+        # plot slits spot
+        ax.fill(self.slits_spot[:, index_X],
+                self.slits_spot[:, index_Y], fill=False)
+
+
+# %% get index
+def get_index(axes):
+    axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
+    return axes_dict[axes]
 
 
 # %% Runge-Kutta
@@ -526,18 +533,18 @@ def runge_kutt(q, m, RV, dt, E, B):
 
 # %%
 def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
-                stop_plane_n, r_plasma, elon, eps_xy=1e-3, eps_z=1e-3):
+                stop_plane_n, eps_xy=1e-3, eps_z=1e-3):
     ''' get voltages on B2 plates and choose secondary trajectory
     which goes into r_aim
     '''
     attempts_high = 0
     attempts_low = 0
-    attempts_XY = 0
+    attempts_opt = 0
     while True:
         tr.U[1], tr.dt1, tr.dt2 = UB2, dt, dt
         # pass fan of trajectories
         tr.pass_fan(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
-                    r_plasma=r_plasma, elon=elon, eps_xy=eps_xy, eps_z=eps_z,
+                    eps_xy=eps_xy, eps_z=eps_z,
                     no_intersect=True, no_out_of_bounds=True)
         if tr.IntersectGeometry:
             break
@@ -593,8 +600,7 @@ def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
             try:
                 B_local = return_B(r, B)
             except ValueError:
-                print('Btor out of bounds while passing Secondary to aim')
-                attempts_XY += 1
+                print('Btor out of bounds while optimizing B2')
                 break
             E_local = np.array([0., 0., 0.])
             RV_new = runge_kutt(tr.q, tr.m, RV_old, tr.dt1, E_local, B_local)
@@ -623,18 +629,20 @@ def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
                 # if higher, continue steps along the primary
                 RV_old = RV_new
 
-        # check if there is a loop while finding secondary to aim
-        if attempts_XY > 3:
-            break
-
         if not tr.IsAimZ:
             dz = r_aim[2]-tr.RV_sec[-1, 2]
             print('UB2 OLD = {:.2f}, z_aim - z_curr = {:.4f} m'
                   .format(UB2, dz))
             UB2 = UB2 - dUB2*dz
             print('UB2 NEW = {:.2f}'.format(UB2))
+            attempts_opt += 1
         else:
             break
+
+        # check if there is a loop while finding secondary to aim
+        if attempts_opt > 20:
+            print('too many attempts B2!')
+        break
 
     return tr
 
@@ -737,7 +745,7 @@ def pass_to_slits(tr, dt, E, B, geom, timestep_divider=10):
 
     # pass fan of trajectories
     tr.pass_fan(rs, E, B, geom, stop_plane_n=slit_plane_n,
-                r_plasma=0.6, elon=1.8,
+                eps_xy=1e-3, eps_z=1e-3,
                 no_intersect=True, no_out_of_bounds=True)
     # create slits polygon
     ax_index = np.argmax(slit_plane_n)
@@ -1034,7 +1042,7 @@ def return_E(r, Ein, U):
             Eout[2] += Ein[i][2](r)*U[i]
             # print('U = ', U[i])
             # print('E = ', Eout)
-        except:
+        except ValueError:
             continue
     return Eout
 
