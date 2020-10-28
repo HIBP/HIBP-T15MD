@@ -393,18 +393,17 @@ class Geometry():
             ax.plot(self.coil[:, 0], self.coil[:, 1], '--', color='k')
             ax.plot(self.coil[:, 2], self.coil[:, 3], '--', color='k')
 
-            # get tokamak camera and plasma contours
-            for i in range(self.camera.shape[0]):
-                ax.plot(self.camera[i, [3, 0]],
-                        self.camera[i, [4, 1]], color='tab:blue')
+            # plot tokamak camera
+            ax.plot(self.camera[:, 0] + self.R, self.camera[:, 1],
+                    color='tab:blue')
 
             # plot first wall
             ax.plot(self.in_fw[:, 0], self.in_fw[:, 1], color='k')
             ax.plot(self.out_fw[:, 0], self.out_fw[:, 1], color='k')
 
             if plot_sep:
-                ax.plot(self.sep[:, 0], self.sep[:, 1], 'o', markersize=2,
-                        color='b')  # 'tab:orange')
+                ax.plot(self.sep[:, 0] + self.R, self.sep[:, 1],
+                        markersize=2, color='b')  # 'tab:orange')
 
             for coil in self.pf_coils.keys():
                 xc = self.pf_coils[coil][0]
@@ -553,7 +552,7 @@ def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
             break
         # reset flags in order to let the algorithm work properly
         tr.IsAimXY = False
-        # tr.IsAimZ = False
+        tr.IsAimZ = False
         tr.IntersectGeometrySec = False
 
         # find which secondaries are higher/lower than r_aim
@@ -642,7 +641,7 @@ def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
         # check if there is a loop while finding secondary to aim
         if attempts_opt > 20:
             print('too many attempts B2!')
-        break
+            break
 
     return tr
 
@@ -760,6 +759,9 @@ def pass_to_slits(tr, dt, E, B, geom, timestep_divider=10):
         intersect_coords_flat = np.delete(fan_tr[-1, :3], ax_index, 0)
         if slits_spot_poly.contains_point(intersect_coords_flat):
             sec_ind.append(i)
+    if len(sec_ind) == 0:
+        print('\nNo secondaries go to slit spot')
+        return tr
 
     print('\nStarting precise fan calculation')
     # divide the timestep
@@ -920,7 +922,7 @@ def segm_poly_intersect(polygon_coords, segment_coords):
     if np.isnan(intersect_coords).any():
         return False
     else:
-        i = np.argmax(polygon_normal)
+        i = np.argmax(abs(polygon_normal))
         polygon_coords_flat = np.delete(polygon_coords, i, 1)
         intersect_coords_flat = np.delete(intersect_coords, i, 0)
         p = path.Path(polygon_coords_flat)

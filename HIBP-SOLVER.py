@@ -14,11 +14,11 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # Plasma current [MA]
     q = 1.60217662e-19  # electron charge [Co]
-    m_Tl = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
+    m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(180., 180. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 5.
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # plasma parameters
     geomT15.R = 1.5  # tokamak major radius [m]
-    geomT15.r_plasma = 0.6  # plasma minor radius [m]
+    geomT15.r_plasma = 0.7  # plasma minor radius [m]
     geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
 # %% AIM position (BEFORE the Secondary beamline) [m]
     xaim = 2.5
-    yaim = 0.0  # -0.25
+    yaim = -0.2  # -0.25
     zaim = 0.0
     r_aim = np.array([xaim, yaim, zaim])
     geomT15.r_dict['aim'] = r_aim
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
     if 'B' not in locals():
         dirname = 'magfield'
-        B = hb.read_B(Btor, Ipl, PF_dict, dirname)
+        B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
 
 # %% Optimize Primary Beamline
     print('\n Primary beamline optimization')
@@ -212,7 +212,7 @@ if __name__ == '__main__':
             U_list = [UA2, UB2, UA3, UB3]
 
             # create new trajectory object
-            tr = hb.Traj(q, m_Tl, Ebeam, r0, alpha_prim, beta_prim,
+            tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
                          U_list, dt)
 
             tr = hb.optimize_B2(tr, r_aim, geomT15, UB2, dUB2, E, B, dt,
@@ -233,9 +233,9 @@ if __name__ == '__main__':
 
 # %% Additonal plots
 
-    hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_E='')
+    hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
     hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
-                    plot_slits=True, plot_traj=True, plot_all=True)
+                    plot_slits=False, plot_traj=True, plot_all=True)
 
     # hbplot.plot_scan(traj_list_passed, geomT15, 240., Btor, Ipl)
     # hbplot.plot_scan(traj_list_passed, geomT15, 120., Btor, Ipl)
