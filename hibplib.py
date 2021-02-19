@@ -300,6 +300,23 @@ class Geometry():
         self.r_plasma = 0
         self.elon = 0
 
+    def add_coords(self, name, ref_point, dist, angles):
+        # convert degrees to radians
+        drad = np.pi/180
+        # unpack ref_point
+        if type(ref_point) == str:
+            x0, y0, z0 = self.r_dict[ref_point]
+        else:
+            x0, y0, z0 = ref_point
+        # unpack angles
+        alpha, beta, gamma = angles
+        # coordinates of the center of the object
+        x = x0 + dist * np.cos(alpha*drad) * np.cos(beta*drad)
+        y = y0 + dist * np.sin(alpha*drad)
+        z = z0 - dist * np.cos(alpha*drad) * np.sin(beta*drad)
+        r = np.array([x, y, z])
+        self.r_dict[name] = r
+
     def check_chamb_ent_intersect(self, point1, point2):
         ''' check the intersection between segment 1->2 and chamber entrance
         '''
@@ -455,7 +472,7 @@ class Geometry():
                 self.slits_spot[:, index_Y], fill=False)
 
 
-# %% get index
+# %% get axes index
 def get_index(axes):
     axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
     return axes_dict[axes]
@@ -531,11 +548,12 @@ def runge_kutt(q, m, RV, dt, E, B):
 
 
 # %%
-def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
+def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 stop_plane_n, eps_xy=1e-3, eps_z=1e-3):
     ''' get voltages on B2 plates and choose secondary trajectory
     which goes into r_aim
     '''
+    r_aim = geom.r_dict['aim']
     attempts_high = 0
     attempts_low = 0
     attempts_opt = 0
@@ -647,12 +665,12 @@ def optimize_B2(tr, r_aim, geom, UB2, dUB2, E, B, dt,
 
 
 # %%
-def optimize_A3B3(tr, rs, geom, UA3, UB3, dUA3, dUB3,
+def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
                   E, B, dt, eps_xy=1e-3, eps_z=1e-3):
-    ''' get voltages on A3 and B3 plates
-    rs - aim point
+    ''' get voltages on A3 and B3 plates to get into slit (rs)
     '''
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
+    rs = geom.r_dict['slit']
     tr.dt1 = dt
     tr.dt2 = dt
     tmax = 9e-5
@@ -1075,7 +1093,7 @@ def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
     # erases data from file before writing
     open(dirname + '/' + fname, 'w').close()
     with open(dirname + '/' + fname, 'w') as myfile:
-        myfile.write('{} {} {} {} # plate\'s length, thic, width and gap'
+        myfile.write('{} {} {} {} # plate\'s length, width, thic and gap'
                      '\n'.format(geom[0], geom[1], geom[2], geom[3]))
         myfile.write('{} {} {} # plate\'s alpha, beta and gamma angle'
                      '\n'.format(angles[0], angles[1], angles[2]))

@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     # A2 plates voltage
     dUA2 = 5.
-    UA2_range = np.arange(-10., 40. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(5., 5. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
@@ -36,6 +36,10 @@ if __name__ == '__main__':
     UA3 = 10.0  # [kV]
     dUA3 = 5.0  # [kV/m]
 
+# %%
+    # convert degrees to radians
+    drad = np.pi/180
+
 # %% PRIMARY beamline geometry
     geomT15 = hb.Geometry()
 
@@ -45,7 +49,7 @@ if __name__ == '__main__':
     geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 20.
+    alpha_prim = 25.  # 20.
     beta_prim = -10.
     gamma_prim = 0.
     geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
@@ -54,47 +58,28 @@ if __name__ == '__main__':
     xpatr = 1.5 + 0.726
     ypatr = 1.064
     zpatr = 0.0
-    geomT15.r_dict['patr'] = np.array([xpatr, ypatr, zpatr])
+    geomT15.r_dict['port'] = np.array([xpatr, ypatr, zpatr])
 
     # distance from the injection port to the Alpha2 plates
     dist_A2 = 0.35  # [m]
     # distance from the injection port to the Beta2 plates
     dist_B2 = dist_A2 + 0.3  # [m]
     # distance from the injection port to the initial piont of the traj [m]
-    dist_0 = dist_B2 + 0.2
+    dist_r0 = dist_B2 + 0.2
 
-    # convert degrees to radians
-    drad = np.pi/180
     # coordinates of the center of the ALPHA2 plates
-    xA2 = xpatr + dist_A2*np.cos(alpha_prim*drad) * \
-        np.cos(beta_prim*drad)
-    yA2 = ypatr + dist_A2*np.sin(alpha_prim*drad)
-    zA2 = zpatr - dist_A2*np.cos(alpha_prim*drad) * \
-        np.sin(beta_prim*drad)
-    rA2 = np.array([xA2, yA2, zA2])
-    geomT15.r_dict['A2'] = rA2
+    geomT15.add_coords('A2', 'port', dist_A2, geomT15.prim_angles)
 
     # coordinates of the center of the BETA2 plates
-    xB2 = xpatr + dist_B2*np.cos(alpha_prim*drad) * \
-        np.cos(beta_prim*drad)
-    yB2 = ypatr + dist_B2*np.sin(alpha_prim*drad)
-    zB2 = zpatr - dist_B2*np.cos(alpha_prim*drad) * \
-        np.sin(beta_prim*drad)
-    rB2 = np.array([xB2, yB2, zB2])
-    geomT15.r_dict['B2'] = rB2
+    geomT15.add_coords('B2', 'port', dist_B2, geomT15.prim_angles)
 
     # coordinates of the initial point of the trajectory [m]
-    x0 = xpatr + dist_0*np.cos(alpha_prim*drad) * \
-        np.cos(beta_prim*drad)
-    y0 = ypatr + dist_0*np.sin(alpha_prim*drad)
-    z0 = zpatr - dist_0*np.cos(alpha_prim*drad) * \
-        np.sin(beta_prim*drad)
-    r0 = np.array([x0, y0, z0])
-    geomT15.r_dict['r0'] = r0
+    geomT15.add_coords('r0', 'port', dist_r0, geomT15.prim_angles)
+    r0 = geomT15.r_dict['r0']
 
 # %% AIM position (BEFORE the Secondary beamline) [m]
     xaim = 2.5
-    yaim = -0.2  # -0.25
+    yaim = -0.25
     zaim = 0.0
     r_aim = np.array([xaim, yaim, zaim])
     geomT15.r_dict['aim'] = r_aim
@@ -109,7 +94,7 @@ if __name__ == '__main__':
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 30.
+    alpha_sec = 20.  # 30.
     beta_sec = 20.
     gamma_sec = 0.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
@@ -122,38 +107,20 @@ if __name__ == '__main__':
     dist_s = dist_B3 + 0.5
 
     # coordinates of the center of the ALPHA3 plates
-    xA3 = xaim + dist_A3*np.cos(alpha_sec*drad) * \
-        np.cos(beta_sec*drad)
-    yA3 = yaim + dist_A3*np.sin(alpha_sec*drad)
-    zA3 = zaim - dist_A3*np.cos(alpha_sec*drad) * \
-        np.sin(beta_sec*drad)
-    rA3 = np.array([xA3, yA3, zA3])
-    geomT15.r_dict['A3'] = rA3
+    geomT15.add_coords('A3', 'aim', dist_A3, geomT15.sec_angles)
 
     # coordinates of the center of the BETA3 plates
-    xB3 = xaim + dist_B3*np.cos(alpha_sec*drad) * \
-        np.cos(beta_sec*drad)
-    yB3 = yaim + dist_B3*np.sin(alpha_sec*drad)
-    zB3 = zaim - dist_B3*np.cos(alpha_sec*drad) * \
-        np.sin(beta_sec*drad)
-    rB3 = np.array([xB3, yB3, zB3])
-    geomT15.r_dict['B3'] = rB3
+    geomT15.add_coords('B3', 'aim', dist_B3, geomT15.sec_angles)
 
     # Coordinates of the CENTRAL slit
-    xs = xaim + dist_s*np.cos(alpha_sec*drad) * \
-        np.cos(beta_sec*drad)
-    ys = yaim + dist_s*np.sin(alpha_sec*drad)
-    zs = zaim - dist_s*np.cos(alpha_sec*drad) * \
-        np.sin(beta_sec*drad)
-    rs = np.array([xs, ys, zs])
-    geomT15.r_dict['slit'] = rs
+    geomT15.add_coords('slit', 'aim', dist_s, geomT15.sec_angles)
 
 # %% print info
     print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
     print('Primary beamline angles: ', geomT15.prim_angles[0:2])
-    print('r0 = ', np.round(r0, 3))
+    print('r0 = ', np.round(geomT15.r_dict['r0'], 3))
     print('r_aim = ', r_aim)
-    print('r_slit = ', np.round(rs, 3))
+    print('r_slit = ', np.round(geomT15.r_dict['slit'], 3))
 
 # %% GEOMETRY
     # chamber entrance and exit coordinates
@@ -215,7 +182,7 @@ if __name__ == '__main__':
             tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
                          U_list, dt)
 
-            tr = hb.optimize_B2(tr, r_aim, geomT15, UB2, dUB2, E, B, dt,
+            tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt,
                                 stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
 
             if tr.IntersectGeometry:
@@ -246,8 +213,7 @@ if __name__ == '__main__':
     print('\n Secondary beamline optimization')
     traj_list_oct = []
     for tr in copy.deepcopy(traj_list_passed):
-        tr = hb.optimize_A3B3(tr, rs, geomT15,
-                              UA3, UB3, dUA3, dUB3, E, B, dt,
+        tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
                               eps_xy=1e-3, eps_z=1e-3)
         if not tr.IntersectGeometrySec:
             traj_list_oct.append(tr)

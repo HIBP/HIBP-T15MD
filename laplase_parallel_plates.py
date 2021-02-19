@@ -38,29 +38,63 @@ def pde_step(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    # beamline = 'prim'
-    beamline = 'sec'
+    plts_name = 'A3'
     save_data = True
-    # define plates geometry
-    # initially plates are parallel to XZ plane
-    length = 0.4  # along X [m]
-    width = 0.2  # along Z [m]
-    thick = 0.02  # [m]
-    gap = 0.2  # distance between plates along Y [m]
-    plts_geom = np.array([length, width, thick, gap])
 
     # define center position
     plts_center = np.array([0., 0., 0.])  # plates center
-    alpha = 45.  # angle with X axis in XY plane (alpha)
-    beta = 20.  # angle with X axis in XZ plane (beta)
-    gamma0 = -20.
-    # gamma 0 for A2, -90 for B2
-    gamma = gamma0 - 90.  # -90. # angle of rotation around X axis (gamma)
-    # convert degrees to radians
-    drad = np.pi/180.
+    # initially plates are parallel to XZ plane
+    # define primary beamline angles
+    alpha_prim = 25.  # angle with X axis in XY plane (alpha)
+    beta_prim = -10.  # angle with X axis in XZ plane (beta)
+    gamma0_prim = 0.  # rotation around the X axis (gamma)
+    # define secondary beamline angles
+    alpha_sec = 20.  # angle with X axis in XY plane (alpha)
+    beta_sec = 20.  # angle with X axis in XZ plane (beta)
+    gamma0_sec = -20.  # rotation around the X axis (gamma)
+
+    # define plates geometry
+    if plts_name == 'A2':
+        beamline = 'prim'
+        length = 0.2  # along X [m]
+        width = 0.08  # along Z [m]
+        thick = 0.008  # [m]
+        gap = 0.05  # distance between plates along Y [m]
+        # gamma 0 for A2, -90 for B2
+        alpha, beta, gamma = alpha_prim, beta_prim, gamma0_prim
+    if plts_name == 'B2':
+        beamline = 'prim'
+        length = 0.2  # along X [m]
+        width = 0.08  # along Z [m]
+        thick = 0.008  # [m]
+        gap = 0.05  # distance between plates along Y [m]
+        alpha, beta, gamma = alpha_prim, beta_prim, gamma0_prim-90.
+    if plts_name == 'A3':
+        beamline = 'sec'
+        length = 0.6  # along X [m]
+        width = 0.2  # along Z [m]
+        thick = 0.02  # [m]
+        gap = 0.2  # distance between plates along Y [m]
+        alpha, beta, gamma = alpha_sec, beta_sec, gamma0_sec
+    if plts_name == 'B3':
+        beamline = 'sec'
+        length = 0.4  # along X [m]
+        width = 0.2  # along Z [m]
+        thick = 0.02  # [m]
+        gap = 0.2  # distance between plates along Y [m]
+        alpha, beta, gamma = alpha_sec, beta_sec, gamma0_sec-90.
+
     plts_angles = np.array([alpha, beta, gamma])
+    plts_geom = np.array([length, width, thick, gap])
+
+    # print info
+    print('Solving for ' + plts_name)
+    print('Geom: ', plts_geom)
+    print('Angles: ', plts_angles)
 
     # Create mesh grid
+    # convert degrees to radians
+    drad = np.pi/180.
     # length of the X-edge of the domain [m]
     border_x = round(2*length*np.cos(alpha*drad)*np.cos(beta*drad), 2)
     border_z = round(2*(width + abs(length*np.sin(beta*drad))), 2)
@@ -121,14 +155,6 @@ if __name__ == '__main__':
 # %% save electric field
     Ex, Ey, Ez = np.gradient(-1*U, delta)  # Ex, Ey, Ez
     if save_data:
-        if abs(abs(gamma) - abs(gamma0)) > 1e-2 and beamline == 'prim':
-            plts_name = 'B2'
-        if abs(abs(gamma) - abs(gamma0)) < 1e-2 and beamline == 'prim':
-            plts_name = 'A2'
-        if abs(abs(gamma) - abs(gamma0)) > 1e-2 and beamline == 'sec':
-            plts_name = 'B3'
-        if abs(abs(gamma) - abs(gamma0)) < 1e-2 and beamline == 'sec':
-            plts_name = 'A3'
         hb.save_E(beamline, plts_name, Ex, Ey, Ez,
                   plts_angles, plts_geom, domain,
                   UP_rotated[4:], LP_rotated[4:])
