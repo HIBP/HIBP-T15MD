@@ -2,6 +2,7 @@ import numpy as np
 import hibplib as hb
 import hibpplotlib as hbplot
 import copy
+import time
 
 # %%
 ''' MAIN '''
@@ -169,6 +170,7 @@ if __name__ == '__main__':
 
 # %% Optimize Primary Beamline
     print('\n Primary beamline optimization')
+    t1 = time.time()
     # define list of trajectores that hit r_aim
     traj_list = []
 
@@ -195,6 +197,9 @@ if __name__ == '__main__':
             else:
                 print('NOT saved, sth wrong')
 
+    t2 = time.time()
+    print("\n B2 voltage optimized, t = {:.5f} s\n".format(t2-t1))
+
 # %%
     traj_list_passed = copy.deepcopy(traj_list)
 
@@ -211,19 +216,23 @@ if __name__ == '__main__':
 
 # %% Optimize Secondary Beamline
     print('\n Secondary beamline optimization')
-    traj_list_oct = []
+    t1 = time.time()
+    traj_list_a3b3 = []
     for tr in copy.deepcopy(traj_list_passed):
         tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
                               eps_xy=1e-3, eps_z=1e-3)
         if not tr.IntersectGeometrySec:
-            traj_list_oct.append(tr)
+            traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
             UA3 = tr.U[2]
             UB3 = tr.U[3]
 
+    t2 = time.time()
+    print("\n A3 & B3 voltages optimized, t = {:.5f} s\n".format(t2-t1))
+
 # %%
-    hbplot.plot_traj(traj_list_oct, geomT15, 240., 40., Btor, Ipl)
-    hbplot.plot_scan(traj_list_oct, geomT15, 240., Btor, Ipl)
+    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 40., Btor, Ipl)
+    hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories
 

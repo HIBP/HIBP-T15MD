@@ -129,7 +129,7 @@ def calc_Bpol(pf_coils, points, nx=3, ny=3):
         # -> x cycle end
         B_coil = biot_savart(points, wires)
         B[coil] = B_coil
-        wires_total.append(wires)
+        wires_total += wires
     return B, wires_total
 
 
@@ -306,7 +306,7 @@ def save_B_geometry(corner1, corner2, res, dirname='magfield'):
 # %%
 if __name__ == '__main__':
 
-    save_data = True
+    save_data = False
 
     if input('Recalculate magnetic fields [y/n]? ') == 'y':
         try:
@@ -321,9 +321,9 @@ if __name__ == '__main__':
     # Define grid points to caculate B
     resolution = 0.1    # [m]
     # xmin ymin zmin [m]
-    volume_corner1 = (0, -2.0, -0.8)
+    volume_corner1 = (0, -2.0, -0.2)
     # xmax ymax zmax [m]
-    volume_corner2 = (3.9+resolution, 2.5+resolution, 0.8+resolution)
+    volume_corner2 = (3.9+resolution, 2.5+resolution, 0.2+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
