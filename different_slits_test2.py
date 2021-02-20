@@ -6,8 +6,8 @@ import copy
 # %%
 ''' pass trajectories to different slits
 '''
-Ebeam = 120.
-UA2 = 10.0
+Ebeam = 240.
+UA2 = 5.0
 
 n_slits = 7
 # add slits to Geometry
@@ -19,11 +19,11 @@ rs = geomT15.r_dict['slit']
 slit_plane_n = geomT15.slit_plane_n
 
 # %%
-traj_list_copy = copy.deepcopy(traj_list_oct)
+traj_list_copy = copy.deepcopy(traj_list_a3b3)
 # traj_list_copy = copy.deepcopy(traj_list_passed)
 
 # %%
-print('*** Passing fan to {} slits'.format(n_slits))
+print('\n*** Passing fan to {} slits'.format(n_slits))
 for tr in traj_list_copy:
     if tr.Ebeam == Ebeam and tr.U[0] == UA2:
         print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))

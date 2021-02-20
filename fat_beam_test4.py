@@ -24,7 +24,7 @@ rs = geomT15.r_dict['slit']
 slit_plane_n = geomT15.slit_plane_n
 
 # %%
-traj_list_copy = copy.deepcopy(traj_list_oct)
+traj_list_copy = copy.deepcopy(traj_list_a3b3)
 # traj_list_copy = copy.deepcopy(traj_list_passed)
 
 # %%

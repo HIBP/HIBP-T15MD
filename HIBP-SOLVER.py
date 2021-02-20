@@ -116,6 +116,9 @@ if __name__ == '__main__':
     # Coordinates of the CENTRAL slit
     geomT15.add_coords('slit', 'aim', dist_s, geomT15.sec_angles)
 
+    # Coordinates of the ANALYZER
+    geomT15.add_coords('an', 'aim', dist_s, geomT15.sec_angles)
+
 # %% print info
     print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
     print('Primary beamline angles: ', geomT15.prim_angles[0:2])
@@ -159,6 +162,9 @@ if __name__ == '__main__':
 
     E = E_prim + E_sec
 
+    # Analyzer G
+    G = 0.98727
+
 # %% Load Magnetic Field
     ''' Magnetic field part '''
     pf_coils = hb.import_PFcoils('PFCoils.dat')
@@ -178,7 +184,7 @@ if __name__ == '__main__':
         for UA2 in UA2_range:
             print('\n\nE = {} keV; UA2 = {} kV\n'.format(Ebeam, UA2))
             # list of starting voltages
-            U_list = [UA2, UB2, UA3, UB3]
+            U_list = [UA2, UB2, UA3, UB3, Ebeam/(2*G)]
 
             # create new trajectory object
             tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
@@ -198,7 +204,7 @@ if __name__ == '__main__':
                 print('NOT saved, sth wrong')
 
     t2 = time.time()
-    print("\n B2 voltage optimized, t = {:.5f} s\n".format(t2-t1))
+    print("\n B2 voltage optimized, t = {:.1f} s\n".format(t2-t1))
 
 # %%
     traj_list_passed = copy.deepcopy(traj_list)
@@ -228,7 +234,7 @@ if __name__ == '__main__':
             UB3 = tr.U[3]
 
     t2 = time.time()
-    print("\n A3 & B3 voltages optimized, t = {:.5f} s\n".format(t2-t1))
+    print("\n A3 & B3 voltages optimized, t = {:.1f} s\n".format(t2-t1))
 
 # %%
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 40., Btor, Ipl)

@@ -958,7 +958,8 @@ def segm_poly_intersect(polygon_coords, segment_coords):
 
 
 # %%
-def plate_flags(range_x, range_y, range_z, U, plts_geom, plts_angles):
+def plate_flags(range_x, range_y, range_z, U,
+                plts_geom, plts_angles, plts_center):
 
     alpha, beta, gamma = plts_angles
     length, width, thick, gap = plts_geom
@@ -982,6 +983,8 @@ def plate_flags(range_x, range_y, range_z, U, plts_geom, plts_angles):
                                   axis=(0, 0, 1), deg=alpha)
         UP_rotated[i, :] = rotate(UP_rotated[i, :],
                                   axis=(0, 1, 0), deg=beta)
+        # shift coords center
+        UP_rotated[i, :] += plts_center
 
     # lower plate
     LP1 = np.array([-length/2., -gap/2. - thick, width/2.])
@@ -1001,6 +1004,8 @@ def plate_flags(range_x, range_y, range_z, U, plts_geom, plts_angles):
                                   axis=(0, 0, 1), deg=alpha)
         LP_rotated[i, :] = rotate(LP_rotated[i, :],
                                   axis=(0, 1, 0), deg=beta)
+        # shift coords center
+        LP_rotated[i, :] += plts_center
 
     # Find coords of 'cubes' containing each plate
     upper_cube = np.array([np.min(UP_rotated, axis=0),
@@ -1021,10 +1026,10 @@ def plate_flags(range_x, range_y, range_z, U, plts_geom, plts_angles):
                 if (x >= upper_cube[0, 0]) and (x <= upper_cube[1, 0]) and \
                    (y >= upper_cube[0, 1]) and (y <= upper_cube[1, 1]) and \
                    (z >= upper_cube[0, 2]) and (z <= upper_cube[1, 2]):
-                    r_rot = rotate(rotate(rotate(
-                        np.array([x, y, z]), axis=(0, 1, 0), deg=-beta),
-                        axis=(0, 0, 1), deg=-alpha),
-                        axis=(1, 0, 0), deg=-gamma)
+                    r = np.array([x, y, z]) - plts_center
+                    r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
+                                          axis=(0, 0, 1), deg=-alpha),
+                                   axis=(1, 0, 0), deg=-gamma)
                     # define masks for upper and lower plates
                     upper_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \
@@ -1034,10 +1039,10 @@ def plate_flags(range_x, range_y, range_z, U, plts_geom, plts_angles):
                 if (x >= lower_cube[0, 0]) and (x <= lower_cube[1, 0]) and \
                    (y >= lower_cube[0, 1]) and (y <= lower_cube[1, 1]) and \
                    (z >= lower_cube[0, 2]) and (z <= lower_cube[1, 2]):
-                    r_rot = rotate(rotate(rotate(
-                        np.array([x, y, z]), axis=(0, 1, 0), deg=-beta),
-                        axis=(0, 0, 1), deg=-alpha),
-                        axis=(1, 0, 0), deg=-gamma)
+                    r = np.array([x, y, z]) - plts_center
+                    r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
+                                          axis=(0, 0, 1), deg=-alpha),
+                                   axis=(1, 0, 0), deg=-gamma)
                     # define masks for upper and lower plates
                     lower_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \
@@ -1062,7 +1067,7 @@ def return_E(r, Ein, U):
             Eout[2] += Ein[i][2](r)*U[i]
             # print('U = ', U[i])
             # print('E = ', Eout)
-        except ValueError:
+        except (ValueError, IndexError):
             continue
     return Eout
 
@@ -1135,45 +1140,48 @@ def read_E(beamline, geom, dirname='elecfield'):
     dirname = dirname + '/' + beamline + \
         '_alpha_{}_beta_{}'.format(int(plts_angles[0]),
                                    int(plts_angles[1]))
+    # list of all *.dat files
+    file_list = [file for file in os.listdir(dirname) if file.endswith('dat')]
+    # push analyzer to the end of the list
+    file_list.sort(key=lambda s: s.startswith('an'))
 
-    for filename in os.listdir(dirname):
-        if filename.endswith('.dat'):
-            plts_name = filename[0:2]
-            r_new = r_dict[plts_name]
+    for filename in file_list:
+        plts_name = filename[0:2]
+        r_new = r_dict[plts_name]
 
-            edges_list = []
-            print('\n Reading geometry {} ...'.format(plts_name))
+        edges_list = []
+        print('\n Reading geometry {} ...'.format(plts_name))
 
-            with open(dirname + '/' + filename, 'r') as f:
-                geom = [float(i) for i in f.readline().split()[0:4]]
-                angles = [float(i) for i in f.readline().split()[0:3]]
-                dim = [int(i) for i in f.readline().split()[0:3]]
-                domain = [float(i) for i in f.readline().split()[0:4]]
-                for line in f:
-                    edges_list.append([float(i) for i in line.split()[0:3]])
+        with open(dirname + '/' + filename, 'r') as f:
+            geometry = [float(i) for i in f.readline().split()[0:4]]
+            angles = [float(i) for i in f.readline().split()[0:3]]
+            dim = [int(i) for i in f.readline().split()[0:3]]
+            domain = [float(i) for i in f.readline().split()[0:4]]
+            for line in f:
+                edges_list.append([float(i) for i in line.split()[0:3]])
 
-            edges_list = np.array(edges_list)
-            edges_dict[plts_name] = np.array([edges_list[0:4, :] + r_new,
-                                              edges_list[4:, :] + r_new])
-            print('position', r_new)
-            Ex = np.load(dirname + '/' + plts_name + '_Ex.npy')
-            Ey = np.load(dirname + '/' + plts_name + '_Ey.npy')
-            Ez = np.load(dirname + '/' + plts_name + '_Ez.npy')
+        edges_list = np.array(edges_list)
+        edges_dict[plts_name] = np.array([edges_list[0:4, :] + r_new,
+                                          edges_list[4:, :] + r_new])
+        print('position', r_new)
+        Ex = np.load(dirname + '/' + plts_name + '_Ex.npy')
+        Ey = np.load(dirname + '/' + plts_name + '_Ey.npy')
+        Ez = np.load(dirname + '/' + plts_name + '_Ez.npy')
 
-            x = np.arange(-domain[0]/2., domain[0]/2., domain[3])
-            y = np.arange(-domain[1]/2., domain[1]/2., domain[3])
-            z = np.arange(-domain[2]/2., domain[2]/2., domain[3])
+        x = np.arange(-domain[0]/2., domain[0]/2., domain[3])
+        y = np.arange(-domain[1]/2., domain[1]/2., domain[3])
+        z = np.arange(-domain[2]/2., domain[2]/2., domain[3])
 
-            # make interpolation for Ex, Ey, Ez
-            Ex_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                                 z + r_new[2]), Ex)
-            Ey_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                                 z + r_new[2]), Ey)
-            Ez_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                                 z + r_new[2]), Ez)
-            E_read = [Ex_interp, Ey_interp, Ez_interp]
+        # make interpolation for Ex, Ey, Ez
+        Ex_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
+                                             z + r_new[2]), Ex)
+        Ey_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
+                                             z + r_new[2]), Ey)
+        Ez_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
+                                             z + r_new[2]), Ez)
+        E_read = [Ex_interp, Ey_interp, Ez_interp]
 
-            E.append(E_read)
+        E.append(E_read)
 
     return E, edges_dict
 
