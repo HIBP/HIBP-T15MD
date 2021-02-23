@@ -828,6 +828,19 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
         # plot edges
         ax1.fill(r_slits[i, 1:, 0], r_slits[i, 1:, 1], fill=False)
         ax3.fill(r_slits[i, 1:, 2], r_slits[i, 1:, 1], fill=False)
+    # draw detector
+    r_slits = geom.det_edges
+    slits_spot = geom.det_spot
+    ax1.fill(slits_spot[:, 0], slits_spot[:, 1], fill=False)
+    ax3.fill(slits_spot[:, 2], slits_spot[:, 1], fill=False)
+    for i in range(n_slits):
+        c = next(colors)
+        # plot centers
+        ax1.plot(r_slits[i, 0, 0], r_slits[i, 0, 1], '*', color=c)
+        ax3.plot(r_slits[i, 0, 2], r_slits[i, 0, 1], '*', color=c)
+        # plot edges
+        ax1.fill(r_slits[i, 1:, 0], r_slits[i, 1:, 1], fill=False)
+        ax3.fill(r_slits[i, 1:, 2], r_slits[i, 1:, 1], fill=False)
 
     # plot primary trajectory
     tr.plot_prim(ax1, axes='XY', color='k', full_primary=True)

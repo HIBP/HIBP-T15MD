@@ -4,19 +4,23 @@ import hibpplotlib as hbplot
 import copy
 
 # %%
-''' pass trajectories to different slits
+''' pass trajectories to detector inside the analyzer
 '''
 Ebeam = 240.
 UA2 = 5.0
 
-n_slits = 7
+n_slits, slit_dist, slit_w = geomT15.an_params[:3]
 # add slits to Geometry
-geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
-                  slit_l=0.1, slit_gamma=0.)  # -20.)
+geomT15.add_slits(n_slits=n_slits, slit_dist=slit_dist, slit_w=slit_w,
+                  slit_l=0.1)
 r_slits = geomT15.slits_edges
 rs = geomT15.r_dict['slit']
 # calculate normal to slit plane
 slit_plane_n = geomT15.slit_plane_n
+
+# define detector
+geomT15.add_detector(n_det=n_slits, det_dist=slit_dist, det_w=slit_dist,
+                     det_l=0.1)
 
 # %%
 traj_list_copy = copy.deepcopy(traj_list_a3b3)

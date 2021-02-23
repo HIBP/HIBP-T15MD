@@ -27,12 +27,9 @@ class Traj():
         self.q = q
         self.m = m
         self.Ebeam = Ebeam
-        drad = np.pi/180.  # converts degrees to radians
         # particle velocity:
         Vabs = np.sqrt(2 * Ebeam * 1.602176487E-16 / m)
-        V0 = np.array([-Vabs * np.cos(alpha*drad)*np.cos(beta*drad),
-                       -Vabs * np.sin(alpha*drad),
-                       Vabs * np.cos(alpha*drad)*np.sin(beta*drad)])
+        V0 = calc_vector(Vabs, alpha, beta, direction=(-1, -1, 1))
         self.alpha = alpha
         self.beta = beta
         self.U = U
@@ -295,27 +292,12 @@ class Geometry():
         # arrays for primary and secondary beamline angles:
         self.prim_angles = np.array([])
         self.sec_angles = np.array([])
+        # array for Analyzer parameters
+        self.an_params = np.array([])
         # plasma geometry
         self.R = 0
         self.r_plasma = 0
         self.elon = 0
-
-    def add_coords(self, name, ref_point, dist, angles):
-        # convert degrees to radians
-        drad = np.pi/180
-        # unpack ref_point
-        if type(ref_point) == str:
-            x0, y0, z0 = self.r_dict[ref_point]
-        else:
-            x0, y0, z0 = ref_point
-        # unpack angles
-        alpha, beta, gamma = angles
-        # coordinates of the center of the object
-        x = x0 + dist * np.cos(alpha*drad) * np.cos(beta*drad)
-        y = y0 + dist * np.sin(alpha*drad)
-        z = z0 - dist * np.cos(alpha*drad) * np.sin(beta*drad)
-        r = np.array([x, y, z])
-        self.r_dict[name] = r
 
     def check_chamb_ent_intersect(self, point1, point2):
         ''' check the intersection between segment 1->2 and chamber entrance
@@ -351,53 +333,66 @@ class Geometry():
                 continue
         return False
 
-    def add_slits(self, n_slits, slit_dist, slit_w, slit_l, slit_gamma):
+    def add_coords(self, name, ref_point, dist, angles):
+        ''' add new element 'name' to r_dict
+        '''
+        # unpack ref_point
+        if type(ref_point) == str:
+            r0 = self.r_dict[ref_point]
+        else:
+            r0 = ref_point
+        # unpack angles
+        alpha, beta = angles[0:2]
+        # coordinates of the center of the object
+        r = r0 + calc_vector(dist, alpha, beta)
+        self.r_dict[name] = r
+
+    def add_slits(self, n_slits, slit_dist, slit_w, slit_l):
         ''' add slits to Geometry
         n_slits - number of slits
-        slit_dist - distance between slits [m]
+        slit_dist - distance between centers of the slits [m]
         slit_w - slit width (along Y) [m]
         slit_l - slit length (along Z)
         slit_gamma - angle of ratation around X [deg]
         '''
-        # angle of slit line with X-axis in XZ plane:
-        slit_alpha = self.sec_angles[0]
-        # angle of slit line with XZ plane:
-        slit_beta = self.sec_angles[1]
-
-        # calculate slits coordinates:
-        r_slits = np.zeros([n_slits, 5, 3])
+        # angles of the slits plane normal
+        angles = self.sec_angles
+        # coords of center of the central slit
         rs = self.r_dict['slit']
-        for i_slit in range(n_slits):
-            # calculate coords of slit center:
-            y0 = (n_slits//2 - i_slit)*slit_dist
-            r_slits[i_slit, 0, :] = [0., y0, 0.]
-            # calculate slit edges:
-            r_slits[i_slit, 1, :] = [0., y0 + slit_w/2, slit_l/2]
-            r_slits[i_slit, 2, :] = [0., y0 - slit_w/2, slit_l/2]
-            r_slits[i_slit, 3, :] = [0., y0 - slit_w/2, -slit_l/2]
-            r_slits[i_slit, 4, :] = [0., y0 + slit_w/2, -slit_l/2]
-            # rotate and shift to slit position:
-            for j in range(5):
-                r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                               axis=(1, 0, 0), deg=slit_gamma)
-                r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                               axis=(0, 0, 1), deg=slit_alpha)
-                r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                               axis=(0, 1, 0), deg=slit_beta)
-                r_slits[i_slit, j, :] += rs
 
-        # calculate normal to slit plane:
-        slit_plane_n = np.cross(r_slits[0, 0, :] - r_slits[0, 1, :],
-                                r_slits[0, 0, :] - r_slits[0, 2, :])
-        slit_plane_n = slit_plane_n/np.linalg.norm(slit_plane_n)
-
-        # create polygon, which contains all slits (slits spot):
-        slits_spot = 1.5*np.vstack([r_slits[0, [1, 4], :] - rs,
-                                    r_slits[-1, [3, 2], :] - rs]) + rs
-
+        r_slits, slit_plane_n, slits_spot = define_slits(rs, angles, n_slits,
+                                                         slit_dist, slit_w,
+                                                         slit_l)
         self.slits_edges = r_slits
         self.slit_plane_n = slit_plane_n
         self.slits_spot = slits_spot
+
+    def add_detector(self, n_det, det_dist, det_w, det_l):
+        ''' add etector to geometry
+        '''
+        if self.an_params.shape[0] == 0:
+            print('Analyzer not defined!')
+            return
+        # angles of the detector normal
+        angles = self.sec_angles
+        angles[0] = -angles[0]
+
+        # analyzer parameters
+        XD, YD1, YD2 = self.an_params[5:]
+        # distance from slit to detector
+        dist = np.sqrt(XD**2 + (YD1 - YD2)**2)
+        # angles of the vector from slit to detector
+        alpha_det = np.arctan((YD1 - YD2) / XD) * 180./np.pi
+        beta_det = angles[1]
+        # coords of the center of the central detector
+        self.add_coords('det', 'slit', dist, [alpha_det, beta_det])
+        rd = self.r_dict['det']
+
+        r_det, det_plane_n, det_spot = define_slits(rd, angles, n_det,
+                                                    det_dist, det_w, det_l)
+        self.det_edges = r_det
+        self.det_plane_n = det_plane_n
+        self.det_spot = det_spot
 
     def plot_geom(self, ax, axes='XY', plot_sep=True, plot_aim=True):
         '''
@@ -470,6 +465,54 @@ class Geometry():
         # plot slits spot
         ax.fill(self.slits_spot[:, index_X],
                 self.slits_spot[:, index_Y], fill=False)
+
+
+# %%
+def define_slits(r0, angles, n_slits, slit_dist, slit_w, slit_l):
+    slit_alpha, slit_beta, slit_gamma = angles
+    n_slits = int(n_slits)
+    # calculate slits coordinates:
+    r_slits = np.zeros([n_slits, 5, 3])
+    for i_slit in range(n_slits):
+        # calculate coords of slit center:
+        y0 = (n_slits//2 - i_slit)*slit_dist
+        r_slits[i_slit, 0, :] = [0., y0, 0.]
+        # calculate slit edges:
+        r_slits[i_slit, 1, :] = [0., y0 + slit_w/2, slit_l/2]
+        r_slits[i_slit, 2, :] = [0., y0 - slit_w/2, slit_l/2]
+        r_slits[i_slit, 3, :] = [0., y0 - slit_w/2, -slit_l/2]
+        r_slits[i_slit, 4, :] = [0., y0 + slit_w/2, -slit_l/2]
+        # rotate and shift to slit position:
+        for j in range(5):
+            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
+                                           axis=(1, 0, 0), deg=slit_gamma)
+            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
+                                           axis=(0, 0, 1), deg=slit_alpha)
+            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
+                                           axis=(0, 1, 0), deg=slit_beta)
+            r_slits[i_slit, j, :] += r0
+
+    # calculate normal to slit plane:
+    slit_plane_n = np.cross(r_slits[0, 0, :] - r_slits[0, 1, :],
+                            r_slits[0, 0, :] - r_slits[0, 2, :])
+    slit_plane_n = slit_plane_n/np.linalg.norm(slit_plane_n)
+
+    # create polygon, which contains all slits (slits spot):
+    slits_spot = 1.5*np.vstack([r_slits[0, [1, 4], :] - r0,
+                                r_slits[-1, [3, 2], :] - r0]) + r0
+
+    return r_slits, slit_plane_n, slits_spot
+
+
+# %%
+def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
+    ''' calculate vector based on its length and angles
+    '''
+    drad = np.pi/180.  # converts degrees to radians
+    x = direction[0] * length * np.cos(alpha*drad) * np.cos(beta*drad)
+    y = direction[1] * length * np.sin(alpha*drad)
+    z = direction[2] * length * np.cos(alpha*drad) * np.sin(beta*drad)
+    return np.array([x, y, z])
 
 
 # %% get axes index
@@ -1079,7 +1122,7 @@ def return_B(r, Bin):
 
 
 def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
-           domain, plate1, plate2, dirname='elecfield'):
+           domain, an_params, plate1, plate2, dirname='elecfield'):
     '''
     save Ex, Ey, Ez arrays to file
     '''
@@ -1106,6 +1149,12 @@ def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
                      '\n'.format(Ex.shape[0], Ex.shape[1], Ex.shape[2]))
         myfile.write('{} {} {} {} # border x, border y, border z, delta'
                      '\n'.format(domain[0], domain[1], domain[2], domain[3]))
+        if plts_name == 'an':
+            myfile.write('{} {} {} {} {} {} {} {} # n_slits, '
+                         'slit_dist, slit_w, G, theta, XD, YD1, YD2'
+                         '\n'.format(an_params[0], an_params[1], an_params[2],
+                                     an_params[3], an_params[4], an_params[5],
+                                     an_params[6], an_params[7]))
         for i in range(plate1.shape[0]):
             myfile.write(np.array2string(plate1[i], precision=4)[1:-1] +
                          ' # 1st plate rotated \n')
@@ -1157,6 +1206,9 @@ def read_E(beamline, geom, dirname='elecfield'):
             angles = [float(i) for i in f.readline().split()[0:3]]
             dim = [int(i) for i in f.readline().split()[0:3]]
             domain = [float(i) for i in f.readline().split()[0:4]]
+            if plts_name == 'an':
+                an_params = [float(i) for i in f.readline().split()[0:8]]
+                geom.an_params = np.array(an_params)
             for line in f:
                 edges_list.append([float(i) for i in line.split()[0:3]])
 

@@ -95,9 +95,9 @@ if __name__ == '__main__':
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 20.  # 30.
+    alpha_sec = 20.
     beta_sec = 20.
-    gamma_sec = 0.
+    gamma_sec = -20.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
 
     # distance from r_aim to the ALPHA3 center
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     E = E_prim + E_sec
 
     # Analyzer G
-    G = 0.98727
+    G = geomT15.an_params[3]
 
 # %% Load Magnetic Field
     ''' Magnetic field part '''
@@ -235,6 +235,11 @@ if __name__ == '__main__':
 
     t2 = time.time()
     print("\n A3 & B3 voltages optimized, t = {:.1f} s\n".format(t2-t1))
+
+# %% Pass trajectory to the Analyzer
+
+
+
 
 # %%
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 40., Btor, Ipl)
