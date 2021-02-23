@@ -12,7 +12,7 @@ UA2 = 5.0
 n_slits = 7
 # add slits to Geometry
 geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
-                  slit_l=0.1, slit_gamma=0.)  # -20.)
+                  slit_l=0.1)  # -20.)
 r_slits = geomT15.slits_edges
 rs = geomT15.r_dict['slit']
 # calculate normal to slit plane

@@ -242,7 +242,7 @@ if __name__ == '__main__':
 
 
 # %%
-    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 40., Btor, Ipl)
+    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 5., Btor, Ipl)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories

@@ -33,9 +33,13 @@ for tr in traj_list_copy:
         print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
     else:
         continue
-
+    RV0 = np.array([tr.RV_sec[0]])
+    tr.pass_sec(RV0, geomT15.r_dict['det'], E, B, geomT15,
+                stop_plane_n=geomT15.det_plane_n, tmax=9e-5,
+                eps_xy=1e-3, eps_z=1)
     tr = hb.pass_to_slits(tr, dt, E, B, geomT15, timestep_divider=15)
     break
 
 # %% plot trajectories
+hbplot.plot_traj(traj_list_copy, geomT15, 240., 5., Btor, Ipl)
 hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)

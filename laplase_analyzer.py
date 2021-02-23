@@ -106,7 +106,7 @@ if __name__ == '__main__':
         length = 1.2*XD  # along X [m]
         width = 0.2  # along Z [m]
         thick = 0.02  # [m]
-        gap = 0.15  # distance between plates along Y [m]
+        gap = 0.1  # distance between plates along Y [m]
         alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma0_sec
 
         # G coeff of the analyzer

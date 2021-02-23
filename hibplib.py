@@ -7,6 +7,8 @@ import copy
 from matplotlib import path
 from scipy.interpolate import RegularGridInterpolator
 from matplotlib.patches import Rectangle
+import matplotlib.pyplot as plt
+from itertools import cycle
 
 # %% define class for trajectories
 
@@ -228,9 +230,8 @@ class Traj():
         '''
         axes_dict = {'XY': (0, 1), 'XZ': (0, 2), 'ZY': (2, 1)}
         index_X, index_Y = axes_dict[axes]
-        if full_primary:
-            index = -1
-        else:
+        index = -1
+        if not full_primary:
             # find where secondary trajectory starts:
             for i in range(self.RV_prim.shape[0]):
                 if np.linalg.norm(self.RV_prim[i, :3]
@@ -324,6 +325,8 @@ class Geometry():
     def check_plates_intersect(self, point1, point2):
         segment_coords = np.array([point1, point2])
         for key in self.plates_edges:
+            if key == 'an':
+                continue
             if segm_poly_intersect(self.plates_edges[key][0],
                                    segment_coords) or \
                 segm_poly_intersect(self.plates_edges[key][1],
@@ -375,19 +378,21 @@ class Geometry():
             return
         # angles of the detector normal
         angles = self.sec_angles
-        angles[0] = -angles[0]
 
         # analyzer parameters
         XD, YD1, YD2 = self.an_params[5:]
+        theta_an = self.an_params[4]
         # distance from slit to detector
         dist = np.sqrt(XD**2 + (YD1 - YD2)**2)
         # angles of the vector from slit to detector
-        alpha_det = np.arctan((YD1 - YD2) / XD) * 180./np.pi
+        alpha_det = np.arctan((YD1 - YD2) / XD) * 180./np.pi - theta_an + \
+            angles[0]
         beta_det = angles[1]
         # coords of the center of the central detector
         self.add_coords('det', 'slit', dist, [alpha_det, beta_det])
         rd = self.r_dict['det']
 
+        angles[0] = -angles[0]
         r_det, det_plane_n, det_spot = define_slits(rd, angles, n_det,
                                                     det_dist, det_w, det_l)
         self.det_edges = r_det
@@ -429,6 +434,8 @@ class Geometry():
         index_X, index_Y = get_index(axes)
         # plot plates
         for name in self.plates_edges.keys():
+            if name == 'an':
+                continue  # do not plot Analyzer
             ax.fill(self.plates_edges[name][0][:, index_X],
                     self.plates_edges[name][0][:, index_Y], fill=False,
                     hatch='\\', linewidth=2)
@@ -444,27 +451,52 @@ class Geometry():
             ax.plot(self.r_dict['slit'][index_X], self.r_dict['slit'][index_Y],
                     '*', color='g')
 
-    def plot_slits(self, ax, axes='XY', color='g', n_slit='all'):
-        ''' plot slits contours
-        '''
+    def plot_analyzer(self, ax, axes='XY', n_slit='all', color='g'):
         index_X, index_Y = get_index(axes)
+        # plot plates
+        for name in self.plates_edges.keys():
+            if name == 'an':
+                ax.fill(self.plates_edges[name][0][:, index_X],
+                        self.plates_edges[name][0][:, index_Y], fill=False,
+                        hatch='\\', linewidth=2)
+                ax.fill(self.plates_edges[name][1][:, index_X],
+                        self.plates_edges[name][1][:, index_Y], fill=False,
+                        hatch='/', linewidth=2)
+        # plot slits
+        plot_slits(self.slits_edges, self.slits_spot, ax, axes=axes,
+                   n_slit=n_slit, color=color)
+        # plot detector
+        plot_slits(self.det_edges, self.det_spot, ax, axes=axes,
+                   n_slit=n_slit, color=color)
 
-        r_slits = self.slits_edges
-        if n_slit == 'all':
-            slits = range(r_slits.shape[0])
-        else:
-            slits = [n_slit]
 
-        for i in slits:
-            # plot center
-            ax.plot(r_slits[i, 0, index_X], r_slits[i, 0, index_Y],
-                    '*', color=color)
-            # plot edge
-            ax.fill(r_slits[i, 1:, index_X], r_slits[i, 1:, index_Y],
-                    fill=False)
-        # plot slits spot
-        ax.fill(self.slits_spot[:, index_X],
-                self.slits_spot[:, index_Y], fill=False)
+# %%
+def plot_slits(r_slits, spot, ax, axes='XY', color='g', n_slit='all'):
+    ''' plot slits contours
+    '''
+    index_X, index_Y = get_index(axes)
+
+    if n_slit == 'all':
+        slits = range(r_slits.shape[0])
+    else:
+        slits = [n_slit]
+
+    # set color cycler
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    colors = colors[:len(slits)]
+    colors = cycle(colors)
+
+    for i in slits:
+        c = next(colors)
+        # plot center
+        ax.plot(r_slits[i, 0, index_X], r_slits[i, 0, index_Y],
+                '*', color=c)
+        # plot edge
+        ax.fill(r_slits[i, 1:, index_X], r_slits[i, 1:, index_Y],
+                fill=False)
+    # plot slits spot
+    ax.fill(spot[:, index_X], spot[:, index_Y], fill=False)
 
 
 # %%
@@ -723,7 +755,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
 
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
-        tr.U[2:] = [UA3, UB3]
+        tr.U[2:4] = [UA3, UB3]
         tr.pass_sec(RV0, rs, E, B, geom, tmax=tmax,
                     eps_xy=eps_xy, eps_z=eps_z)
 
@@ -751,7 +783,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
             n_stepsZ = 0
             while not tr.IsAimZ:
                 print('pushing Z direction')
-                tr.U[2:] = [UA3, UB3]
+                tr.U[2:4] = [UA3, UB3]
                 tr.pass_sec(RV0, rs, E, B, geom,
                             eps_xy=eps_xy, eps_z=eps_z, tmax=tmax)
                 # tr.IsAimZ = True  # if you want to skip UB3 calculation
@@ -1104,6 +1136,7 @@ def return_E(r, Ein, U):
     '''
     Eout = np.zeros(3)
     for i in range(len(Ein)):
+        # print('ORDER INDEX: ', i)
         try:
             Eout[0] += Ein[i][0](r)*U[i]
             Eout[1] += Ein[i][1](r)*U[i]

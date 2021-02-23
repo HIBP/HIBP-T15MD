@@ -808,39 +808,17 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
 
+    # draw slits
+    geom.plot_analyzer(ax1, axes='XY')
+    # geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot_analyzer(ax3, axes='ZY')
+
     n_slits = geom.slits_edges.shape[0]
     # set color cycler
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
     colors = colors[:n_slits]
     colors = cycle(colors)
-
-    # draw slits
-    r_slits = geom.slits_edges
-    slits_spot = geom.slits_spot
-    ax1.fill(slits_spot[:, 0], slits_spot[:, 1], fill=False)
-    ax3.fill(slits_spot[:, 2], slits_spot[:, 1], fill=False)
-    for i in range(n_slits):
-        c = next(colors)
-        # plot centers
-        ax1.plot(r_slits[i, 0, 0], r_slits[i, 0, 1], '*', color=c)
-        ax3.plot(r_slits[i, 0, 2], r_slits[i, 0, 1], '*', color=c)
-        # plot edges
-        ax1.fill(r_slits[i, 1:, 0], r_slits[i, 1:, 1], fill=False)
-        ax3.fill(r_slits[i, 1:, 2], r_slits[i, 1:, 1], fill=False)
-    # draw detector
-    r_slits = geom.det_edges
-    slits_spot = geom.det_spot
-    ax1.fill(slits_spot[:, 0], slits_spot[:, 1], fill=False)
-    ax3.fill(slits_spot[:, 2], slits_spot[:, 1], fill=False)
-    for i in range(n_slits):
-        c = next(colors)
-        # plot centers
-        ax1.plot(r_slits[i, 0, 0], r_slits[i, 0, 1], '*', color=c)
-        ax3.plot(r_slits[i, 0, 2], r_slits[i, 0, 1], '*', color=c)
-        # plot edges
-        ax1.fill(r_slits[i, 1:, 0], r_slits[i, 1:, 1], fill=False)
-        ax3.fill(r_slits[i, 1:, 2], r_slits[i, 1:, 1], fill=False)
 
     # plot primary trajectory
     tr.plot_prim(ax1, axes='XY', color='k', full_primary=True)
