@@ -321,9 +321,9 @@ if __name__ == '__main__':
     # Define grid points to caculate B
     resolution = 0.1    # [m]
     # xmin ymin zmin [m]
-    volume_corner1 = (1.0, -1.5, -0.8)
+    volume_corner1 = (1.2, -1.5, -0.8)
     # xmax ymax zmax [m]
-    volume_corner2 = (4.25+resolution, 2.5+resolution, 0.8+resolution)
+    volume_corner2 = (4.4+resolution, 2.5+resolution, 0.8+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,

@@ -359,7 +359,7 @@ class Geometry():
         slit_gamma - angle of ratation around X [deg]
         '''
         # angles of the slits plane normal
-        angles = self.sec_angles
+        angles = copy.deepcopy(self.sec_angles)
         # coords of center of the central slit
         rs = self.r_dict['slit']
 
@@ -377,7 +377,7 @@ class Geometry():
             print('Analyzer not defined!')
             return
         # angles of the detector normal
-        angles = self.sec_angles
+        angles = copy.deepcopy(self.sec_angles)
 
         # analyzer parameters
         XD, YD1, YD2 = self.an_params[5:]
@@ -471,7 +471,7 @@ class Geometry():
 
 
 # %%
-def plot_slits(r_slits, spot, ax, axes='XY', color='g', n_slit='all'):
+def plot_slits(r_slits, spot, ax, axes='XY', n_slit='all', color='g'):
     ''' plot slits contours
     '''
     index_X, index_Y = get_index(axes)
@@ -741,11 +741,18 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
 
 # %%
 def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
-                  E, B, dt, eps_xy=1e-3, eps_z=1e-3):
-    ''' get voltages on A3 and B3 plates to get into slit (rs)
+                  E, B, dt, target='slit', eps_xy=1e-3, eps_z=1e-3):
+    ''' get voltages on A3 and B3 plates to get into rs
     '''
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
-    rs = geom.r_dict['slit']
+    print('Target: ' + target)
+    if target == 'slit':
+        rs = geom.r_dict['slit']
+        stop_plane_n = geom.slit_plane_n
+    elif target == 'det':
+        rs = geom.r_dict['det']
+        stop_plane_n = geom.det_plane_n
+
     tr.dt1 = dt
     tr.dt2 = dt
     tmax = 9e-5
@@ -756,8 +763,8 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
         tr.U[2:4] = [UA3, UB3]
-        tr.pass_sec(RV0, rs, E, B, geom, tmax=tmax,
-                    eps_xy=eps_xy, eps_z=eps_z)
+        tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
+                    tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)
 
         drXY = np.linalg.norm(rs[:2]-tr.RV_sec[-1, :2]) * \
             np.sign(np.cross(tr.RV_sec[-1, :2], rs[:2]))
@@ -784,8 +791,8 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
             while not tr.IsAimZ:
                 print('pushing Z direction')
                 tr.U[2:4] = [UA3, UB3]
-                tr.pass_sec(RV0, rs, E, B, geom,
-                            eps_xy=eps_xy, eps_z=eps_z, tmax=tmax)
+                tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
+                            tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)
                 # tr.IsAimZ = True  # if you want to skip UB3 calculation
                 dz = rs[2] - tr.RV_sec[-1, 2]
                 print(' UB3 OLD = {:.2f} kV, dZ = {:.4f} m'
@@ -821,7 +828,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
 
 
 # %%
-def pass_to_slits(tr, dt, E, B, geom, timestep_divider=10):
+def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
     ''' pass trajectories to slits and save secondaries which get into slits
     '''
     tr.dt1 = dt
@@ -830,10 +837,16 @@ def pass_to_slits(tr, dt, E, B, geom, timestep_divider=10):
     n_slits = geom.slits_edges.shape[0]
     tr.add_slits(n_slits)
     # find slits position
-    r_slits = geom.slits_edges
-    rs = geom.r_dict['slit']
-    slit_plane_n = geom.slit_plane_n
-    slits_spot = geom.slits_spot
+    if target == 'slit':
+        r_slits = geom.slits_edges
+        rs = geom.r_dict['slit']
+        slit_plane_n = geom.slit_plane_n
+        slits_spot = geom.slits_spot
+    elif target == 'det':
+        r_slits = geom.det_edges
+        rs = geom.r_dict['det']
+        slit_plane_n = geom.det_plane_n
+        slits_spot = geom.det_spot
 
     # pass fan of trajectories
     tr.pass_fan(rs, E, B, geom, stop_plane_n=slit_plane_n,
@@ -1136,11 +1149,12 @@ def return_E(r, Ein, U):
     '''
     Eout = np.zeros(3)
     for i in range(len(Ein)):
-        # print('ORDER INDEX: ', i)
         try:
             Eout[0] += Ein[i][0](r)*U[i]
             Eout[1] += Ein[i][1](r)*U[i]
             Eout[2] += Ein[i][2](r)*U[i]
+            # print('\nORDER INDEX: ', i)
+            # print('r = ', r)
             # print('U = ', U[i])
             # print('E = ', Eout)
         except (ValueError, IndexError):
@@ -1160,7 +1174,8 @@ def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
     save Ex, Ey, Ez arrays to file
     '''
     dirname = dirname + '/' + beamline + \
-        '_alpha_{}_beta_{}'.format(int(angles[0]), int(angles[1]))
+        '_alpha_{}_beta_{}_gamma_{}'.format(int(angles[0]), int(angles[1]),
+                                            int(angles[2]))
 
     if not os.path.exists(dirname):
         try:
@@ -1174,26 +1189,21 @@ def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
     # erases data from file before writing
     open(dirname + '/' + fname, 'w').close()
     with open(dirname + '/' + fname, 'w') as myfile:
-        myfile.write('{} {} {} {} # plate\'s length, width, thic and gap'
-                     '\n'.format(geom[0], geom[1], geom[2], geom[3]))
-        myfile.write('{} {} {} # plate\'s alpha, beta and gamma angle'
-                     '\n'.format(angles[0], angles[1], angles[2]))
-        myfile.write('{} {} {} # number of dots (x,y,z)'
-                     '\n'.format(Ex.shape[0], Ex.shape[1], Ex.shape[2]))
-        myfile.write('{} {} {} {} # border x, border y, border z, delta'
-                     '\n'.format(domain[0], domain[1], domain[2], domain[3]))
+        myfile.write(np.array2string(geom)[1:-1] +
+                     ' # plate\'s length, width, thic and gap\n')
+        myfile.write(np.array2string(angles)[1:-1] +
+                     ' # plate\'s alpha, beta and gamma angle\n')
+        myfile.write(np.array2string(domain, max_line_width=200)[1:-1] +
+                     ' # xmin, xmax, ymin, ymax, zmin, zmax, delta\n')
         if plts_name == 'an':
-            myfile.write('{} {} {} {} {} {} {} {} # n_slits, '
-                         'slit_dist, slit_w, G, theta, XD, YD1, YD2'
-                         '\n'.format(an_params[0], an_params[1], an_params[2],
-                                     an_params[3], an_params[4], an_params[5],
-                                     an_params[6], an_params[7]))
+            myfile.write(np.array2string(an_params, max_line_width=200)[1:-1] +
+                         ' # n_slits, slit_dist, slit_w, G, theta, XD, YD1, YD2\n')
         for i in range(plate1.shape[0]):
             myfile.write(np.array2string(plate1[i], precision=4)[1:-1] +
-                         ' # 1st plate rotated \n')
+                         ' # 1st plate rotated\n')
         for i in range(plate2.shape[0]):
             myfile.write(np.array2string(plate2[i], precision=4)[1:-1] +
-                         ' # 2nd plate rotated \n')
+                         ' # 2nd plate rotated\n')
 
     np.save(dirname + '/' + plts_name + '_Ex', Ex)
     np.save(dirname + '/' + plts_name + '_Ey', Ey)
@@ -1220,8 +1230,9 @@ def read_E(beamline, geom, dirname='elecfield'):
     E = []
     edges_dict = {}
     dirname = dirname + '/' + beamline + \
-        '_alpha_{}_beta_{}'.format(int(plts_angles[0]),
-                                   int(plts_angles[1]))
+        '_alpha_{}_beta_{}_gamma_{}'.format(int(plts_angles[0]),
+                                            int(plts_angles[1]),
+                                            int(plts_angles[2]))
     # list of all *.dat files
     file_list = [file for file in os.listdir(dirname) if file.endswith('dat')]
     # push analyzer to the end of the list
@@ -1237,8 +1248,7 @@ def read_E(beamline, geom, dirname='elecfield'):
         with open(dirname + '/' + filename, 'r') as f:
             geometry = [float(i) for i in f.readline().split()[0:4]]
             angles = [float(i) for i in f.readline().split()[0:3]]
-            dim = [int(i) for i in f.readline().split()[0:3]]
-            domain = [float(i) for i in f.readline().split()[0:4]]
+            domain = [float(i) for i in f.readline().split()[0:7]]
             if plts_name == 'an':
                 an_params = [float(i) for i in f.readline().split()[0:8]]
                 geom.an_params = np.array(an_params)
@@ -1253,17 +1263,14 @@ def read_E(beamline, geom, dirname='elecfield'):
         Ey = np.load(dirname + '/' + plts_name + '_Ey.npy')
         Ez = np.load(dirname + '/' + plts_name + '_Ez.npy')
 
-        x = np.arange(-domain[0]/2., domain[0]/2., domain[3])
-        y = np.arange(-domain[1]/2., domain[1]/2., domain[3])
-        z = np.arange(-domain[2]/2., domain[2]/2., domain[3])
+        x = np.arange(domain[0], domain[1], domain[6]) + r_new[0]
+        y = np.arange(domain[2], domain[3], domain[6]) + r_new[1]
+        z = np.arange(domain[4], domain[5], domain[6]) + r_new[2]
 
         # make interpolation for Ex, Ey, Ez
-        Ex_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                             z + r_new[2]), Ex)
-        Ey_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                             z + r_new[2]), Ey)
-        Ez_interp = RegularGridInterpolator((x + r_new[0], y + r_new[1],
-                                             z + r_new[2]), Ez)
+        Ex_interp = RegularGridInterpolator((x, y, z), Ex)
+        Ey_interp = RegularGridInterpolator((x, y, z), Ey)
+        Ez_interp = RegularGridInterpolator((x, y, z), Ez)
         E_read = [Ex_interp, Ey_interp, Ez_interp]
 
         E.append(E_read)

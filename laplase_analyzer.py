@@ -38,7 +38,7 @@ def pde_step(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'an'
+    plts_name = 'B3'
     save_data = True
 
     # define center position
@@ -47,11 +47,11 @@ if __name__ == '__main__':
     # define primary beamline angles
     alpha_prim = 20.  # angle with X axis in XY plane (alpha)
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
-    gamma0_prim = 0.  # rotation around the X axis (gamma)
+    gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
     alpha_sec = 30.  # angle with X axis in XY plane (alpha)
     beta_sec = 20.  # angle with X axis in XZ plane (beta)
-    gamma0_sec = -20.  # rotation around the X axis (gamma)
+    gamma_sec = 0.  # rotation around the X axis (gamma)
 
     # convert degrees to radians
     drad = np.pi/180.
@@ -66,7 +66,7 @@ if __name__ == '__main__':
         thick = 0.008  # [m]
         gap = 0.05  # distance between plates along Y [m]
         # gamma 0 for A2, -90 for B2
-        alpha, beta, gamma = alpha_prim, beta_prim, gamma0_prim
+        alpha, beta, gamma = alpha_prim, beta_prim, gamma_prim
 
     if plts_name == 'B2':
         beamline = 'prim'
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         width = 0.08  # along Z [m]
         thick = 0.008  # [m]
         gap = 0.05  # distance between plates along Y [m]
-        alpha, beta, gamma = alpha_prim, beta_prim, gamma0_prim-90.
+        alpha, beta, gamma = alpha_prim, beta_prim, gamma_prim-90.
 
     if plts_name == 'A3':
         beamline = 'sec'
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         width = 0.2  # along Z [m]
         thick = 0.02  # [m]
         gap = 0.2  # distance between plates along Y [m]
-        alpha, beta, gamma = alpha_sec, beta_sec, gamma0_sec
+        alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec
 
     if plts_name == 'B3':
         beamline = 'sec'
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         width = 0.2  # along Z [m]
         thick = 0.02  # [m]
         gap = 0.2  # distance between plates along Y [m]
-        alpha, beta, gamma = alpha_sec, beta_sec, gamma0_sec-90.
+        alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec-90.
 
     if plts_name == 'an':
         # ANALYZER
@@ -99,17 +99,19 @@ if __name__ == '__main__':
         n_slits, slit_dist, slit_w = 7, 0.01, 5e-3
         # analyzer geometry
         theta_an = 30.
-        YD1 = 1.5 * np.cos(theta_an*drad) * (n_slits//2 * slit_dist
-                                             + 0.5*slit_w)
+        width = 0.2  # along Z [m]
+        thick = 0.02  # [m]
+        gap = 0.1  # distance between plates along Y [m]
+
+        YD1 = 0.02 + thick + np.cos(theta_an*drad) * (n_slits//2 * slit_dist
+                                                      + 0.5*slit_w)
         YD2 = YD1
         YD = YD1 + YD2
         XD = 3 * np.sqrt(3) * YD
 
         length = 1.2*XD  # along X [m]
-        width = 0.2  # along Z [m]
-        thick = 0.02  # [m]
-        gap = 0.1  # distance between plates along Y [m]
-        alpha, beta, gamma = alpha_sec, beta_sec, gamma0_sec
+
+        alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec
 
         # G coeff of the analyzer
         G = (XD*np.tan(theta_an*drad) - YD) / (4 * gap *
@@ -130,27 +132,22 @@ if __name__ == '__main__':
         print('\n ANALYZER with {} slits is defined'.format(n_slits))
         print('\n G = {}\n'.format(G))
 
-    plts_angles = np.array([alpha, beta, gamma])
-    plts_geom = np.array([length, width, thick, gap])
-
-    # print info
-    print('Solving for ' + plts_name)
-    print('Geom: ', plts_geom)
-    print('Angles: ', plts_angles)
-
     # Create mesh grid
     # length of the X-edge of the domain [m]
     border_x = round(2*length*np.cos(alpha*drad)*np.cos(beta*drad), 2)
     border_z = round(2*(width + abs(length*np.sin(beta*drad))), 2)
-    border_y = round(2*(gap + abs(length*np.sin(alpha*drad))), 2)
+    border_y = round(2*(gap + 2*thick + abs(length*np.sin(alpha*drad))), 2)
     delta = thick/2  # space step
-    domain = np.array([border_x, border_y, border_z, delta])
 
     range_x = np.arange(-border_x/2., border_x/2., delta) + plts_center[0]
     range_y = np.arange(-border_y/2., border_y/2., delta) + plts_center[1]
     range_z = np.arange(-border_z/2., border_z/2., delta) + plts_center[2]
     x, y, z = np.meshgrid(range_x, range_y,
                           range_z, indexing='ij')  # [X ,Y, Z]
+    # collect xmin, xmax, ymin, ymax, zmin, zmax, delta
+    domain = np.array([range_x[0], range_x[-1]+delta,
+                       range_y[0], range_y[-1]+delta,
+                       range_z[0], range_z[-1]+delta, delta])
 
     mx = range_x.shape[0]
     my = range_y.shape[0]
@@ -173,16 +170,17 @@ if __name__ == '__main__':
     U0 = np.copy(U)
     U1 = np.full_like(U, 1e3)
 
-    if plts_name == 'an':
-        # alpha angle of the Analyzer is different
-        UP_rotated, LP_rotated, upper_plate_flag, lower_plate_flag = \
-            hb.plate_flags(range_x, range_y, range_z, U,
-                           plts_geom, np.array([alpha-theta_an, beta, gamma]),
-                           plts_center)
-    else:
-        UP_rotated, LP_rotated, upper_plate_flag, lower_plate_flag = \
-            hb.plate_flags(range_x, range_y, range_z, U,
-                           plts_geom, plts_angles, plts_center)
+    plts_angles = np.array([alpha, beta, gamma])
+    plts_geom = np.array([length, width, thick, gap])
+
+    # print info
+    print('Solving for ' + plts_name)
+    print('Geom: ', plts_geom)
+    print('Angles: ', plts_angles)
+
+    UP_rotated, LP_rotated, upper_plate_flag, lower_plate_flag = \
+        hb.plate_flags(range_x, range_y, range_z, U,
+                       plts_geom, plts_angles, plts_center)
 
 # %% solver
     eps = 1e-5
@@ -206,9 +204,18 @@ if __name__ == '__main__':
 
 # %% save electric field
     Ex, Ey, Ez = np.gradient(-1*U, delta)  # Ex, Ey, Ez
-    if save_data:
+    # set zero E in the cells corresponding to plates
+    Ex[upper_plate_flag], Ey[upper_plate_flag], Ez[upper_plate_flag] = 0, 0, 0
+    Ex[lower_plate_flag], Ey[lower_plate_flag], Ez[lower_plate_flag] = 0, 0, 0
+    if save_data and beamline == 'prim':
         hb.save_E(beamline, plts_name, Ex, Ey, Ez,
-                  plts_angles, plts_geom, domain, an_params,
+                  np.array([alpha_prim, beta_prim, gamma_prim]),
+                  plts_geom, domain, an_params,
+                  UP_rotated[4:], LP_rotated[4:])
+    elif save_data and beamline == 'sec':
+        hb.save_E(beamline, plts_name, Ex, Ey, Ez,
+                  np.array([alpha_sec, beta_sec, gamma_sec]),
+                  plts_geom, domain, an_params,
                   UP_rotated[4:], LP_rotated[4:])
     else:
         print('DATA NOT SAVED')

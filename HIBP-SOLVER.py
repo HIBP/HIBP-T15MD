@@ -23,23 +23,19 @@ if __name__ == '__main__':
 
     # A2 plates voltage
     dUA2 = 5.
-    UA2_range = np.arange(5., 5. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(-10., -10. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 7.0  # [kV/m]
+    dUB2 = -7.0  # [kV/m]
 
     # B3 voltages
     UB3 = 10.0  # [kV]
-    dUB3 = 15.0  # [kV/m]
+    dUB3 = -15.0  # [kV/m]
 
     # A3 voltages
     UA3 = 10.0  # [kV]
-    dUA3 = 5.0  # [kV/m]
-
-# %%
-    # convert degrees to radians
-    drad = np.pi/180
+    dUA3 = -5.0  # [kV/m]
 
 # %% PRIMARY beamline geometry
     geomT15 = hb.Geometry()
@@ -50,7 +46,7 @@ if __name__ == '__main__':
     geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 25.  # 20.
+    alpha_prim = 20.
     beta_prim = -10.
     gamma_prim = 0.
     geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
@@ -88,16 +84,14 @@ if __name__ == '__main__':
     # angles of aim plane normal [deg]
     alpha_aim = 0.
     beta_aim = 0.
-    stop_plane_n = np.array([np.cos(alpha_aim*drad)*np.cos(beta_aim*drad),
-                             np.sin(alpha_aim*drad),
-                             np.cos(alpha_aim*drad)*np.sin(beta_aim*drad)])
-    stop_plane_n = stop_plane_n/np.linalg.norm(stop_plane_n)
+    stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim,
+                                  direction=(1, 1, 1))
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 20.
+    alpha_sec = 30.
     beta_sec = 20.
-    gamma_sec = -20.
+    gamma_sec = 0.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
 
     # distance from r_aim to the ALPHA3 center
@@ -162,8 +156,21 @@ if __name__ == '__main__':
 
     E = E_prim + E_sec
 
+# %% Analyzer parameters
     # Analyzer G
     G = geomT15.an_params[3]
+
+    n_slits, slit_dist, slit_w = geomT15.an_params[:3]
+
+    # add slits to Geometry
+    geomT15.add_slits(n_slits=n_slits, slit_dist=slit_dist, slit_w=slit_w,
+                      slit_l=0.1)
+
+    # define detector
+    geomT15.add_detector(n_det=n_slits, det_dist=slit_dist, det_w=slit_dist,
+                         det_l=0.1)
+    print('\nAnalyzer with {} slits added to Geometry'.format(n_slits))
+    print('G = {}\n'.format(G))
 
 # %% Load Magnetic Field
     ''' Magnetic field part '''
@@ -213,7 +220,7 @@ if __name__ == '__main__':
 
     hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
     hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
-                    plot_slits=False, plot_traj=True, plot_all=True)
+                    plot_analyzer=True, plot_traj=True, plot_all=True)
 
     # hbplot.plot_scan(traj_list_passed, geomT15, 240., Btor, Ipl)
     # hbplot.plot_scan(traj_list_passed, geomT15, 120., Btor, Ipl)
@@ -226,7 +233,7 @@ if __name__ == '__main__':
     traj_list_a3b3 = []
     for tr in copy.deepcopy(traj_list_passed):
         tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
-                              eps_xy=1e-3, eps_z=1e-3)
+                              target='slit', eps_xy=1e-3, eps_z=1e-3)
         if not tr.IntersectGeometrySec:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
@@ -237,12 +244,24 @@ if __name__ == '__main__':
     print("\n A3 & B3 voltages optimized, t = {:.1f} s\n".format(t2-t1))
 
 # %% Pass trajectory to the Analyzer
+    print('\n Passing trajectories to Analyzer')
+    t1 = time.time()
+    traj_list_det = []
+    for tr in copy.deepcopy(traj_list_a3b3):
+        tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
+                              target='det', eps_xy=1e-3, eps_z=1e-3)
+        if not tr.IntersectGeometrySec:
+            traj_list_det.append(tr)
+            print('\n Trajectory saved')
+            UA3 = tr.U[2]
+            UB3 = tr.U[3]
 
-
-
+    t2 = time.time()
+    print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
 
 # %%
-    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 5., Btor, Ipl)
+    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
+                     full_primary=False, plot_analyzer=True)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories

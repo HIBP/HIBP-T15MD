@@ -487,7 +487,7 @@ def set_axes_param(ax, xlabel, ylabel):
 
 # %%
 def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
-              plot_slits=False):
+              plot_analyzer=False):
     '''
     plot primary and secondary trajectories
     :param traj_list: list of trajectories
@@ -507,9 +507,9 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
     geom.plot_geom(ax1, axes='XY')
     geom.plot_geom(ax2, axes='XZ')
     # plot slits
-    if plot_slits:
-        geom.plot_slits(ax1, axes='XY')
-        geom.plot_slits(ax2, axes='XZ')
+    if plot_analyzer:
+        geom.plot_analyzer(ax1, axes='XY')
+        geom.plot_analyzer(ax2, axes='XZ')
 
     # plot trajectory
     for tr in traj_list:
@@ -521,7 +521,7 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
             ax1.set_title('E={} keV, UA2={} kV, Btor = {} T, Ipl = {} MA'
                           .format(Ebeam, UA2, Btor, Ipl))
 
-            if plot_slits:
+            if plot_analyzer and hasattr(tr, 'RV_sec_slit'):
                 n_slits = len(tr.RV_sec_slit)
                 for i in range(n_slits):
                     for sec_tr in tr.RV_sec_slit[i]:
@@ -540,7 +540,7 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
 
 # %%
 def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
-             plot_last_points=True, plot_slits=False, plot_all=False,
+             plot_last_points=True, plot_analyzer=False, plot_all=False,
              full_primary=True):
     '''
     plot fan of trajectories in xy, xz and zy planes
@@ -570,11 +570,11 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
     geom.plot_geom(ax1, axes='XY')
     geom.plot_geom(ax2, axes='XZ')
     geom.plot_geom(ax3, axes='ZY')
-    # plot slits
-    if plot_slits:
-        geom.plot_slits(ax1, axes='XY')
-        geom.plot_slits(ax2, axes='XZ')
-        geom.plot_slits(ax3, axes='ZY')
+    # plot analyzer
+    if plot_analyzer:
+        geom.plot_analyzer(ax1, axes='XY')
+        geom.plot_analyzer(ax2, axes='XZ')
+        geom.plot_analyzer(ax3, axes='ZY')
 
     ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'
                   .format(Ebeam, Btor, Ipl))
@@ -635,7 +635,7 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
 
 # %%
 def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
-              plot_slits=False, plot_det_line=False):
+              plot_analyzer=False, plot_det_line=False):
     '''
     plot scan for one beam with particular energy in 2 planes: xy, xz
     :param traj_list: list of trajectories
@@ -653,10 +653,10 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     # plot geometry
     geom.plot_geom(ax1, axes='XY')
     geom.plot_geom(ax2, axes='XZ')
-    # plot slits
-    if plot_slits:
-        geom.plot_slits(ax1, axes='XY')
-        geom.plot_slits(ax2, axes='XZ')
+    # plot analyzer
+    if plot_analyzer:
+        geom.plot_analyzer(ax1, axes='XY')
+        geom.plot_analyzer(ax2, axes='XZ')
 
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
@@ -674,7 +674,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=full_primary)
             tr.plot_prim(ax2, axes='XZ', color='k', full_primary=full_primary)
             # plot secondary
-            if plot_slits:
+            if plot_analyzer and hasattr(tr, 'RV_sec_slit'):
                 n_slits = len(tr.RV_sec_slit)
                 for i in range(n_slits):
                     for sec_tr in tr.RV_sec_slit[i]:
@@ -869,6 +869,10 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
     geom.plot_geom(ax2, axes='XZ', plot_aim=False)
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
+    # draw slits
+    geom.plot_analyzer(ax1, axes='XY')
+    # geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot_analyzer(ax3, axes='ZY')
 
     # get number of slits
     n_slits = geom.slits_edges.shape[0]
@@ -881,13 +885,6 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
         slits = range(n_slits)
     else:
         slits = [n_slit]
-
-    # draw slits
-    for i in range(n_slits):
-        c = colors[i]
-        geom.plot_slits(ax1, axes='XY', color=c, n_slit=i)
-        geom.plot_slits(ax2, axes='XZ', color=c, n_slit=i)
-        geom.plot_slits(ax3, axes='ZY', color=c, n_slit=i)
 
     # plot trajectories
     for tr in fat_beam_list:
@@ -937,6 +934,9 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
+    geom.plot_analyzer(ax1, axes='XY')
+    # geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot_analyzer(ax3, axes='ZY')
 
     # get number of slits
     n_slits = geom.slits_edges.shape[0]
@@ -963,12 +963,6 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
         slits = range(n_slits)
     else:
         slits = [n_slit]
-
-    # draw slits
-    for i in range(n_slits):
-        c = colors[i]
-        geom.plot_slits(ax1, axes='XY', color=c, n_slit=i)
-        geom.plot_slits(ax3, axes='ZY', color=c, n_slit=i)
 
     # plot sample volumes
     for i in slits:
