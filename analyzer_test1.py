@@ -7,20 +7,7 @@ import copy
 ''' pass trajectories to detector inside the analyzer
 '''
 Ebeam = 240.
-UA2 = 5.0
-
-n_slits, slit_dist, slit_w = geomT15.an_params[:3]
-# add slits to Geometry
-geomT15.add_slits(n_slits=n_slits, slit_dist=slit_dist, slit_w=slit_w,
-                  slit_l=0.1)
-r_slits = geomT15.slits_edges
-rs = geomT15.r_dict['slit']
-# calculate normal to slit plane
-slit_plane_n = geomT15.slit_plane_n
-
-# define detector
-geomT15.add_detector(n_det=n_slits, det_dist=slit_dist, det_w=slit_dist,
-                     det_l=0.1)
+UA2 = -8.
 
 # %%
 traj_list_copy = copy.deepcopy(traj_list_a3b3)
@@ -34,12 +21,15 @@ for tr in traj_list_copy:
     else:
         continue
     RV0 = np.array([tr.RV_sec[0]])
-    tr.pass_sec(RV0, geomT15.r_dict['det'], E, B, geomT15,
-                stop_plane_n=geomT15.det_plane_n, tmax=9e-5,
+    # tr.dt2 = 7e-8/4
+    tr.pass_sec(RV0, geomT15.r_dict['det'], E, B, geomT15, tmax=9e-5,
                 eps_xy=1e-3, eps_z=1)
-    tr = hb.pass_to_slits(tr, dt, E, B, geomT15, timestep_divider=15)
+    # tr = hb.pass_to_slits(tr, dt, E, B, geomT15,
+    #                       target='det', timestep_divider=15)
     break
 
 # %% plot trajectories
-hbplot.plot_traj(traj_list_copy, geomT15, 240., 5., Btor, Ipl)
-hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)
+
+hbplot.plot_traj(traj_list_copy, geomT15, 240., UA2, Btor, Ipl,
+                  full_primary=False, plot_analyzer=True)
+# hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)

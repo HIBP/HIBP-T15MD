@@ -9,9 +9,10 @@ from scipy.interpolate import RegularGridInterpolator
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 from itertools import cycle
+import numba
+
 
 # %% define class for trajectories
-
 
 class Traj():
 
@@ -59,7 +60,7 @@ class Traj():
         self.RV_sec_toslits = []
         self.ion_zones = []
 
-    def pass_prim(self, E_interp, B_interp, geom, tmax=1.0):
+    def pass_prim(self, E_interp, B_interp, geom, tmax=1e-5):
         ''' passing primary trajectory from initial point self.RV0
             geom - Geometry object
         '''
@@ -68,7 +69,8 @@ class Traj():
         t = 0.
         dt = self.dt1
         RV_old = self.RV0  # initial position
-        RV = self.RV0  # array to collect all r,V
+        RV = self.RV0  # array to collect all r, V
+        k = self.q / self.m
         tag_column = [10]
 
         while t <= tmax:
@@ -80,9 +82,10 @@ class Traj():
                 B_local = return_B(r, B_interp)
             except ValueError:
                 print('Btor Out of bounds for primaries, r = ', r)
+                print(' t = ', t)
                 break
             # runge-kutta step:
-            RV_new = runge_kutt(self.q, self.m, RV_old, dt, E_local, B_local)
+            RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
             RV = np.vstack((RV, RV_new))
 
             tag_column = np.hstack((tag_column, 10))
@@ -105,7 +108,7 @@ class Traj():
         self.tag_prim = tag_column
 
     def pass_sec(self, RV0, r_aim, E_interp, B_interp, geom,
-                 stop_plane_n=np.array([1, 0, 0]), tmax=7e-5,
+                 stop_plane_n=np.array([1, 0, 0]), tmax=5e-6,
                  eps_xy=1e-3, eps_z=1e-3):
         ''' passing secondary trajectory from initial point RV0 to point r_aim
             with accuracy eps
@@ -120,6 +123,7 @@ class Traj():
         dt = self.dt2
         RV_old = RV0  # initial position
         RV = RV0  # array to collect all [r,V]
+        k = 2*self.q / self.m
         tag_column = [20]
 
         while t <= tmax:  # to witness curls initiate tmax as 1 sec
@@ -132,10 +136,11 @@ class Traj():
             except ValueError:
                 print('Btor Out of bounds for secondaries, r = ',
                       np.round(r, 3))
+                print(' t = ', t)
                 self.B_out_of_bounds = True
                 break
             # runge-kutta step:
-            RV_new = runge_kutt(2*self.q, self.m, RV_old, dt, E_local, B_local)
+            RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
 
             if geom.check_chamb_ext_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
                 # print('Secondary intersected chamber exit')
@@ -324,7 +329,7 @@ class Geometry():
 
     def check_plates_intersect(self, point1, point2):
         segment_coords = np.array([point1, point2])
-        for key in self.plates_edges:
+        for key in self.plates_edges.keys():
             if key == 'an':
                 continue
             if segm_poly_intersect(self.plates_edges[key][0],
@@ -554,11 +559,23 @@ def get_index(axes):
 
 
 # %% Runge-Kutta
-def runge_kutt(q, m, RV, dt, E, B):
+# define equations of movement:
+
+@numba.jit()
+def f(k, E, V, B):
+    return k*(E + np.cross(V, B))
+
+
+@numba.jit()
+def g(V):
+    return V
+
+
+@numba.jit()
+def runge_kutt(k, RV, dt, E, B):
     '''
     Calculate one step using Runge-Kutta algorithm
-    :param q: particle charge [Co]
-    :param m: particle mass [kg]
+    :param k: particle charge [Co] / particle mass [kg]
     :param RV: 7 dimensial vector
            array[[x,y,z,vx,vy,vz,Flag]]
            Flag = 10 primary out of plasma
@@ -588,30 +605,26 @@ def runge_kutt(q, m, RV, dt, E, B):
     E - np.array([Ex, Ey, Ez])
     B - np.array([Bx, By, Bz])
     '''
-    k = q/m
     r = RV[0, :3]
     V = RV[0, 3:]
 
-    # define equations of movement:
-    def f(E, V, B): return k*(E + np.cross(V, B))
-    def g(V): return V
     ''' m1,k1 '''
-    m1 = f(E, V, B)
+    m1 = f(k, E, V, B)
     k1 = g(V)
     ''' m2,k2 '''
     fV2 = V + (dt / 2.) * m1
     gV2 = V + (dt / 2.) * m1
-    m2 = f(E, fV2, B)
+    m2 = f(k, E, fV2, B)
     k2 = g(gV2)
     ''' m3,k3 '''
     fV3 = V + (dt / 2.) * m2
     gV3 = V + (dt / 2.) * m2
-    m3 = f(E, fV3, B)
+    m3 = f(k, E, fV3, B)
     k3 = g(gV3)
     ''' m4,k4 '''
     fV4 = V + dt * m3
     gV4 = V + dt * m3
-    m4 = f(E, fV4, B)
+    m4 = f(k, E, fV4, B)
     k4 = g(gV4)
     ''' all together! '''
     V = V + (dt / 6.) * (m1 + (2. * m2) + (2. * m3) + m4)
@@ -629,6 +642,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
     which goes into r_aim
     '''
     r_aim = geom.r_dict['aim']
+    k = tr.q/tr.m
     attempts_high = 0
     attempts_low = 0
     attempts_opt = 0
@@ -695,7 +709,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 print('Btor out of bounds while optimizing B2')
                 break
             E_local = np.array([0., 0., 0.])
-            RV_new = runge_kutt(tr.q, tr.m, RV_old, tr.dt1, E_local, B_local)
+            RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
             # pass new secondary trajectory
             tr.pass_sec(RV_new, r_aim, E, B, geom,
                         stop_plane_n=stop_plane_n, eps_xy=eps_xy, eps_z=eps_z)
@@ -833,6 +847,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
     '''
     tr.dt1 = dt
     tr.dt2 = dt
+    k = tr.q / tr.m
     # find the number of slits
     n_slits = geom.slits_edges.shape[0]
     tr.add_slits(n_slits)
@@ -892,7 +907,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
         r = RV_old[0, :3]
         B_local = return_B(r, B)
         E_local = np.array([0., 0., 0.])
-        RV_new = runge_kutt(tr.q, tr.m, RV_old, tr.dt1, E_local, B_local)
+        RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
         i_steps += 1
         if not (tr.IntersectGeometrySec or tr.B_out_of_bounds):
@@ -925,6 +940,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
 
 
 # %%
+@numba.jit()
 def translate(input_array, xyz):
     '''
     move the vector in space
@@ -937,6 +953,7 @@ def translate(input_array, xyz):
     return input_array
 
 
+@numba.jit()
 def rot_mx(axis=(1, 0, 0), deg=0):
     '''
     function calculates rotation matrix
@@ -956,6 +973,7 @@ def rot_mx(axis=(1, 0, 0), deg=0):
     return R
 
 
+@numba.jit()
 def rotate(input_array, axis=(1, 0, 0), deg=0):
     '''
     rotate vector around given axis by deg degrees

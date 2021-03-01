@@ -9,6 +9,8 @@ import copy
 Ebeam = 240.
 UA2 = -10.
 
+n_slits = geomT15.slits_edges.shape[0]
+
 # %%
 traj_list_copy = copy.deepcopy(traj_list_a3b3)
 # traj_list_copy = copy.deepcopy(traj_list_passed)
@@ -20,15 +22,18 @@ for tr in traj_list_copy:
         print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
     else:
         continue
-    RV0 = np.array([tr.RV_sec[0]])
-    # tr.dt2 = 7e-8/4
-    tr.pass_sec(RV0, geomT15.r_dict['det'], E, B, geomT15, tmax=9e-5,
-                eps_xy=1e-3, eps_z=1)
+
     tr = hb.pass_to_slits(tr, dt, E, B, geomT15,
-                          target='det', timestep_divider=15)
+                          target='slit', timestep_divider=15)
+    for i_slit in range(n_slits):
+        for fan_tr in tr.RV_sec_toslits[i_slit]:
+            RV0 = np.array([fan_tr[0]])
+            tr.pass_sec(RV0, geomT15.r_dict['det'], E, B, geomT15, tmax=9e-5,
+                        eps_xy=1e-3, eps_z=1)
     break
 
 # %% plot trajectories
-hbplot.plot_traj(traj_list_copy, geomT15, 240., UA2, Btor, Ipl,
-                 full_primary=False, plot_analyzer=True)
+
+# hbplot.plot_traj(traj_list_copy, geomT15, 240., UA2, Btor, Ipl,
+#                   full_primary=False, plot_analyzer=True)
 hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)
