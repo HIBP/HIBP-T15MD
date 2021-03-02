@@ -43,7 +43,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'an'
+    plts_name = 'A4'
     save_data = True
 
     # define center position
@@ -97,6 +97,14 @@ if __name__ == '__main__':
         gap = 0.2  # distance between plates along Y [m]
         alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec-90.
 
+    elif plts_name == 'A4':
+        beamline = 'sec'
+        length = 0.4  # along X [m]
+        width = 0.2  # along Z [m]
+        thick = 0.02  # [m]
+        gap = 0.2  # distance between plates along Y [m]
+        alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec
+
     elif plts_name == 'an':
         # ANALYZER
         beamline = 'sec'
@@ -116,7 +124,7 @@ if __name__ == '__main__':
 
         length = 1.2*XD  # along X [m]
 
-        alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec
+        alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec-180
 
         # G coeff of the analyzer
         G = (XD*np.tan(theta_an*drad) - YD) / (4 * gap *
@@ -166,8 +174,8 @@ if __name__ == '__main__':
     edge_flag[:, :, edge_list] = True
 
     # define voltages [Volts]
-    Uupper_plate = 1e3
-    Ulower_plate = 0.
+    Uupper_plate = 0.
+    Ulower_plate = 1e3
 
     # array for electric potential
     U = np.zeros((mx, my, mz))

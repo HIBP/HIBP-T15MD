@@ -24,19 +24,23 @@ if __name__ == '__main__':
 
     # A2 plates voltage
     dUA2 = 5.
-    UA2_range = np.arange(-20., -20. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(0., 0. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
-    UB2 = 5.0  # [kV]
-    dUB2 = -7.0  # [kV/m]
+    UB2 = 0.0  # [kV]
+    dUB2 = 10.0  # [kV/m]
 
     # B3 voltages
     UB3 = 10.0  # [kV]
-    dUB3 = -15.0  # [kV/m]
+    dUB3 = 20.0  # [kV/m]
 
     # A3 voltages
     UA3 = 10.0  # [kV]
-    dUA3 = -5.0  # [kV/m]
+    dUA3 = 5.0  # [kV/m]
+
+    # A4 voltages
+    UA4 = 0.0  # [kV]
+    dUA4 = 5.0  # [kV/m]
 
 # %% PRIMARY beamline geometry
     geomT15 = hb.Geometry()
@@ -77,7 +81,7 @@ if __name__ == '__main__':
 
 # %% AIM position (BEFORE the Secondary beamline) [m]
     xaim = 2.6  # 2.5
-    yaim = -0.15  # -0.25
+    yaim = -0.25
     zaim = 0.0
     r_aim = np.array([xaim, yaim, zaim])
     geomT15.r_dict['aim'] = r_aim
@@ -99,14 +103,19 @@ if __name__ == '__main__':
     dist_A3 = 0.3  # 1/2 of plates length
     # distance from r_aim to the BETA3 center
     dist_B3 = dist_A3 + 0.6
+    # from r_aim to A4
+    dist_A4 = dist_B3 + 0.5
     # distance from r_aim the entrance slit of the analyzer
-    dist_s = dist_B3 + 0.5
+    dist_s = dist_A4 + 0.5
 
     # coordinates of the center of the ALPHA3 plates
     geomT15.add_coords('A3', 'aim', dist_A3, geomT15.sec_angles)
 
     # coordinates of the center of the BETA3 plates
     geomT15.add_coords('B3', 'aim', dist_B3, geomT15.sec_angles)
+
+    # coordinates of the center of the ALPHA4 plates
+    geomT15.add_coords('A4', 'aim', dist_A4, geomT15.sec_angles)
 
     # Coordinates of the CENTRAL slit
     geomT15.add_coords('slit', 'aim', dist_s, geomT15.sec_angles)
@@ -195,7 +204,7 @@ if __name__ == '__main__':
         for UA2 in UA2_range:
             print('\n\nE = {} keV; UA2 = {} kV\n'.format(Ebeam, UA2))
             # list of starting voltages
-            U_list = [UA2, UB2, UA3, UB3, Ebeam/(2*G)]
+            U_list = [UA2, UB2, UA3, UB3, UA4, Ebeam/(2*G)]
 
             # create new trajectory object
             tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
@@ -250,30 +259,29 @@ if __name__ == '__main__':
     print("\n A3 & B3 voltages optimized, t = {:.1f} s\n".format(t2-t1))
 
 # %%
-    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., -8.0, Btor, Ipl,
+    hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
                      full_primary=False, plot_analyzer=True)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Pass trajectory to the Analyzer
-    print('\n Passing trajectories to Analyzer')
+    print('\n Optimizing entrance angle to Analyzer with A4')
     t1 = time.time()
-    traj_list_det = []
-    # for tr in copy.deepcopy(traj_list_a3b3):
-    #     tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
-    #                           target='det', eps_xy=1e-3, eps_z=1e-3)
-    #     if not tr.IntersectGeometrySec:
-    #         traj_list_det.append(tr)
-    #         print('\n Trajectory saved')
-    #         UA3 = tr.U[2]
-    #         UB3 = tr.U[3]
+    traj_list_a4 = []
+    for tr in copy.deepcopy(traj_list_a3b3):
+        tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
+                            E, B, dt, eps_alpha=0.05)
+        if not tr.IntersectGeometrySec:
+            traj_list_a4.append(tr)
+            print('\n Trajectory saved')
+            UA4 = tr.U[4]
 
     t2 = time.time()
     print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
 
 # %%
-    hbplot.plot_traj(traj_list_det, geomT15, 240., -8.0, Btor, Ipl,
+    hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,
                      full_primary=False, plot_analyzer=True)
-    hbplot.plot_scan(traj_list_det, geomT15, 240., Btor, Ipl)
+    hbplot.plot_scan(traj_list_a4, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories
 

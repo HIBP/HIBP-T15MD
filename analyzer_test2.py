@@ -7,7 +7,7 @@ import copy
 ''' pass trajectories to detector inside the analyzer
 '''
 Ebeam = 240.
-UA2 = -10.
+UA2 = 0.
 
 n_slits = geomT15.slits_edges.shape[0]
 
@@ -24,7 +24,15 @@ for tr in traj_list_copy:
         continue
 
     tr = hb.pass_to_slits(tr, dt, E, B, geomT15,
-                          target='slit', timestep_divider=15)
+                          target='slit', timestep_divider=15,
+                          no_intersect=True, no_out_of_bounds=True)
+    # hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)
+
+
+    # tr = hb.pass_to_slits(tr, dt, E, B, geomT15,
+    #                       target='det', timestep_divider=15,
+    #                       no_intersect=True, no_out_of_bounds=True)
+    # hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl, plot_fan=True)
     for i_slit in range(n_slits):
         for fan_tr in tr.RV_sec_toslits[i_slit]:
             RV0 = np.array([fan_tr[0]])

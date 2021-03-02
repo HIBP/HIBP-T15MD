@@ -95,8 +95,10 @@ class Traj():
                 self.IntersectGeometry = True
                 break
 
-            if geom.check_plates_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
-                print('Primary intersected plates')
+            plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
+                                                               RV_new[0, 0:3])
+            if plts_flag:
+                print('Primary intersected ' + plts_name + ' plates')
                 self.IntersectGeometry = True
                 break
 
@@ -108,7 +110,7 @@ class Traj():
         self.tag_prim = tag_column
 
     def pass_sec(self, RV0, r_aim, E_interp, B_interp, geom,
-                 stop_plane_n=np.array([1, 0, 0]), tmax=5e-6,
+                 stop_plane_n=np.array([1, 0, 0]), tmax=5e-5,
                  eps_xy=1e-3, eps_z=1e-3):
         ''' passing secondary trajectory from initial point RV0 to point r_aim
             with accuracy eps
@@ -146,8 +148,10 @@ class Traj():
                 # print('Secondary intersected chamber exit')
                 self.IntersectGeometrySec = True
 
-            if geom.check_plates_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
-                print('Secondary intersected plates')
+            plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
+                                                               RV_new[0, 0:3])
+            if plts_flag:
+                print('Secondary intersected ' + plts_name + ' plates')
                 self.IntersectGeometrySec = True
 
             # find last point of the secondary trajectory
@@ -336,10 +340,10 @@ class Geometry():
                                    segment_coords) or \
                 segm_poly_intersect(self.plates_edges[key][1],
                                     segment_coords):
-                return True
+                return True, key
             else:
                 continue
-        return False
+        return False, 'none'
 
     def add_coords(self, name, ref_point, dist, angles):
         ''' add new element 'name' to r_dict
@@ -550,6 +554,17 @@ def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
     y = direction[1] * length * np.sin(alpha*drad)
     z = direction[2] * length * np.cos(alpha*drad) * np.sin(beta*drad)
     return np.array([x, y, z])
+
+
+# %%
+def calc_angles(vector):
+    ''' calculate alpha and beta angles based on vector coords
+    '''
+    drad = np.pi/180.  # converts degrees to radians
+    x, y, z = vector / np.linalg.norm(vector)
+    alpha = np.arcsin(y)  # rad
+    beta = np.arcsin(-np.tan(alpha) * z / y)  # rad
+    return alpha/drad, beta/drad  # degrees
 
 
 # %% get axes index
@@ -766,6 +781,9 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     elif target == 'det':
         rs = geom.r_dict['det']
         stop_plane_n = geom.det_plane_n
+    elif target == 'A4':
+        rs = geom.r_dict['A4']
+        stop_plane_n = geom.slit_plane_n
 
     tr.dt1 = dt
     tr.dt2 = dt
@@ -842,7 +860,58 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
 
 
 # %%
-def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
+def optimize_A4(tr, geom, UA4, dUA4,
+                E, B, dt, eps_alpha=0.1):
+    ''' get voltages on A4 to get proper alpha angle at rs
+    '''
+    print('\n A4 optimization\n')
+    print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
+
+    rs = geom.r_dict['slit']
+    stop_plane_n = geom.slit_plane_n
+    alpha_target = geom.sec_angles[0]
+
+    tr.dt1 = dt
+    tr.dt2 = dt
+    tmax = 9e-5
+    # tr.IsAimXY = False
+    # tr.IsAimZ = False
+    RV0 = np.array([tr.RV_sec[0]])
+    V_last = tr.RV_sec[-1][3:]
+    alpha, beta = calc_angles(V_last)
+    dalpha = alpha_target - alpha
+    n_stepsA4 = 0
+    while (abs(alpha - alpha_target) > eps_alpha):
+        tr.U[4] = UA4
+        tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
+                    tmax=tmax, eps_xy=1e-2, eps_z=1e-2)
+
+        V_last = tr.RV_sec[-1][3:]
+        alpha, beta = calc_angles(V_last)
+        dalpha = alpha_target - alpha
+        print('\n UA4 OLD = {:.2f} kV, dalpha = {:.4f} deg'.format(UA4, dalpha))
+        drXY = np.linalg.norm(rs[:2]-tr.RV_sec[-1, :2]) * \
+            np.sign(np.cross(tr.RV_sec[-1, :2], rs[:2]))
+        dz = rs[2] - tr.RV_sec[-1, 2]
+        print('dr XY = {:.4f} m, dz = {:.4f} m'.format(drXY, dz))
+
+        UA4 = UA4 + dUA4*dalpha
+        print('UA4 NEW = {:.2f} kV'.format(UA4))
+        n_stepsA4 += 1
+
+        if abs(UA4) > 200.:
+            print('ALPHA4 failed, voltage too high')
+            return tr
+        if n_stepsA4 > 100:
+            print('ALPHA4 failed, too many steps')
+            return tr
+
+    return tr
+
+
+# %%
+def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
+                  no_intersect=True, no_out_of_bounds=True):
     ''' pass trajectories to slits and save secondaries which get into slits
     '''
     tr.dt1 = dt
@@ -866,7 +935,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10):
     # pass fan of trajectories
     tr.pass_fan(rs, E, B, geom, stop_plane_n=slit_plane_n,
                 eps_xy=1e-3, eps_z=1e-3,
-                no_intersect=True, no_out_of_bounds=True)
+                no_intersect=no_intersect, no_out_of_bounds=no_out_of_bounds)
     # create slits polygon
     ax_index = np.argmax(slit_plane_n)
     slits_spot_flat = np.delete(slits_spot, ax_index, 1)
@@ -1254,7 +1323,8 @@ def read_E(beamline, geom, dirname='elecfield'):
     # list of all *.dat files
     file_list = [file for file in os.listdir(dirname) if file.endswith('dat')]
     # push analyzer to the end of the list
-    file_list.sort(key=lambda s: s.startswith('an'))
+    file_list.sort(key=lambda s: s[1:])  # A3, B3, A4, an
+    # file_list.sort(key=lambda s: s.startswith('an'))
 
     for filename in file_list:
         plts_name = filename[0:2]
