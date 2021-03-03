@@ -259,6 +259,28 @@ def plot_contours_zy(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
 
 
 # %%
+def plot_contours_xz(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
+                     n_contours=30, plates_color='k'):
+
+    fig, ax1 = plt.subplots()
+    set_axes_param(ax1, 'X (m)', 'Z (m)')
+
+    y_cut = U.shape[1]//2
+    ax1.contour(X, Z, U[:, y_cut, :].swapaxes(0, 1), n_contours)
+    # add the edge of the domain
+    domain = patches.Rectangle((min(X), min(Z)), max(X)-min(X), max(Z)-min(Z),
+                               linewidth=2, linestyle='--', edgecolor='k',
+                               facecolor='none')
+    ax1.add_patch(domain)
+
+    x, y, z = np.meshgrid(X, Y, Z, indexing='ij')
+    ax1.plot(x[:, y_cut, :][upper_plate_flag[:, y_cut, :]],
+             z[:, y_cut, :][upper_plate_flag[:, y_cut, :]], 'o', color='k')
+    ax1.plot(x[:, y_cut, :][lower_plate_flag[:, y_cut, :]],
+             z[:, y_cut, :][lower_plate_flag[:, y_cut, :]], 'o', color='k')
+
+
+# %%
 def plot_stream_zy(X, Y, Z, Ex, Ey, Ez, upper_plate_flag, lower_plate_flag,
                    dens=1.0, plates_color='k'):
 
@@ -795,22 +817,23 @@ def plot_grid(traj_list, geom, Btor, Ipl,
 # %%
 def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
 
-    # fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
-    fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+    # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
-    # set_axes_param(ax2, 'X (m)', 'Z (m)')
+    set_axes_param(ax2, 'X (m)', 'Z (m)')
     set_axes_param(ax3, 'Z (m)', 'Y (m)')
     ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
                   .format(tr.Ebeam, tr.U[0], Btor, Ipl))
 
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
+    geom.plot_geom(ax2, axes='XZ', plot_aim=False)
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
 
     # draw slits
     geom.plot_analyzer(ax1, axes='XY')
-    # geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot_analyzer(ax2, axes='XZ')
     geom.plot_analyzer(ax3, axes='ZY')
 
     n_slits = geom.slits_edges.shape[0]
@@ -822,12 +845,14 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
 
     # plot primary trajectory
     tr.plot_prim(ax1, axes='XY', color='k', full_primary=True)
+    tr.plot_prim(ax2, axes='XZ', color='k', full_primary=True)
     tr.plot_prim(ax3, axes='ZY', color='k', full_primary=True)
 
     # plot precise fan of secondaries
     if plot_fan:
         for fan_tr in tr.fan_to_slits:
             ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color='tab:gray')
+            ax2.plot(fan_tr[:, 0], fan_tr[:, 2], color='tab:gray')
             ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color='tab:gray')
 
     # plot secondaries
@@ -835,6 +860,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
         c = next(colors)
         for fan_tr in tr.RV_sec_toslits[i_slit]:
             ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color=c)
+            ax2.plot(fan_tr[:, 0], fan_tr[:, 2], color=c)
             ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color=c)
 
     # plot zones

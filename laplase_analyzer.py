@@ -46,6 +46,10 @@ if __name__ == '__main__':
     plts_name = 'A4'
     save_data = True
 
+    # define voltages [Volts]
+    Uupper_plate = 0.
+    Ulower_plate = 1e3
+
     # define center position
     plts_center = np.array([0., 0., 0.])  # plates center
     # initially plates are parallel to XZ plane
@@ -107,6 +111,9 @@ if __name__ == '__main__':
 
     elif plts_name == 'an':
         # ANALYZER
+        # define voltages [Volts]
+        Uupper_plate = 1e3
+        Ulower_plate = 0.
         beamline = 'sec'
         # slits configuration [m]
         n_slits, slit_dist, slit_w = 7, 0.01, 5e-3
@@ -124,7 +131,7 @@ if __name__ == '__main__':
 
         length = 1.2*XD  # along X [m]
 
-        alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec-180
+        alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec
 
         # G coeff of the analyzer
         G = (XD*np.tan(theta_an*drad) - YD) / (4 * gap *
@@ -132,13 +139,11 @@ if __name__ == '__main__':
         G = np.round(G, 5)
 
         # center of the coords system should be shifted to the slit center
-        # distance from coords center to slit center
-        dist = np.sqrt((XD/2)**2 + (gap/2 + YD1)**2)
-        # alpha angle of the vector
-        alpha_shift = np.arctan((YD1 + gap/2) / (XD/2)) / drad  # [deg]
-        # resulting shift vector
-        zero_shift = hb.calc_vector(dist, alpha_shift, beta)
-        plts_center += zero_shift
+        plts_center = np.array([XD/2, gap/2 + YD1, 0])
+        axis = hb.calc_vector(1, alpha, beta)
+        plts_center = hb.rotate(plts_center, axis=(0, 0, 1), deg=alpha)
+        plts_center = hb.rotate(plts_center, axis=(0, 1, 0), deg=beta)
+        plts_center = hb.rotate(plts_center, axis=axis, deg=gamma)
 
         an_params = np.array([n_slits, slit_dist, slit_w, G, theta_an,
                               round(XD, 4), round(YD1, 4), round(YD2, 4)])
@@ -172,10 +177,6 @@ if __name__ == '__main__':
     edge_flag[edge_list, :, :] = True
     edge_flag[:, edge_list, :] = True
     edge_flag[:, :, edge_list] = True
-
-    # define voltages [Volts]
-    Uupper_plate = 0.
-    Ulower_plate = 1e3
 
     # array for electric potential
     U = np.zeros((mx, my, mz))

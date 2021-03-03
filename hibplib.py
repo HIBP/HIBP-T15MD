@@ -511,6 +511,7 @@ def plot_slits(r_slits, spot, ax, axes='XY', n_slit='all', color='g'):
 # %%
 def define_slits(r0, angles, n_slits, slit_dist, slit_w, slit_l):
     slit_alpha, slit_beta, slit_gamma = angles
+    axis = calc_vector(1, slit_alpha, slit_beta)
     n_slits = int(n_slits)
     # calculate slits coordinates:
     r_slits = np.zeros([n_slits, 5, 3])
@@ -526,11 +527,11 @@ def define_slits(r0, angles, n_slits, slit_dist, slit_w, slit_l):
         # rotate and shift to slit position:
         for j in range(5):
             r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                           axis=(1, 0, 0), deg=slit_gamma)
-            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
                                            axis=(0, 0, 1), deg=slit_alpha)
             r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
                                            axis=(0, 1, 0), deg=slit_beta)
+            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
+                                           axis=axis, deg=slit_gamma)
             r_slits[i_slit, j, :] += r0
 
     # calculate normal to slit plane:
@@ -1137,6 +1138,7 @@ def plate_flags(range_x, range_y, range_z, U,
                 plts_geom, plts_angles, plts_center):
 
     alpha, beta, gamma = plts_angles
+    axis = calc_vector(1, alpha, beta)
     length, width, thick, gap = plts_geom
 
     # Geometry rotated in system based on central point between plates
@@ -1153,11 +1155,11 @@ def plate_flags(range_x, range_y, range_z, U,
     UP_rotated = UP_full.copy()
     for i in range(UP_full.shape[0]):
         UP_rotated[i, :] = rotate(UP_rotated[i, :],
-                                  axis=(1, 0, 0), deg=gamma)
-        UP_rotated[i, :] = rotate(UP_rotated[i, :],
                                   axis=(0, 0, 1), deg=alpha)
         UP_rotated[i, :] = rotate(UP_rotated[i, :],
                                   axis=(0, 1, 0), deg=beta)
+        UP_rotated[i, :] = rotate(UP_rotated[i, :],
+                                  axis=axis, deg=gamma)
         # shift coords center
         UP_rotated[i, :] += plts_center
 
@@ -1174,11 +1176,11 @@ def plate_flags(range_x, range_y, range_z, U,
     LP_rotated = LP_full.copy()
     for i in range(LP_full.shape[0]):
         LP_rotated[i, :] = rotate(LP_rotated[i, :],
-                                  axis=(1, 0, 0), deg=gamma)
-        LP_rotated[i, :] = rotate(LP_rotated[i, :],
                                   axis=(0, 0, 1), deg=alpha)
         LP_rotated[i, :] = rotate(LP_rotated[i, :],
                                   axis=(0, 1, 0), deg=beta)
+        LP_rotated[i, :] = rotate(LP_rotated[i, :],
+                                  axis=axis, deg=gamma)
         # shift coords center
         LP_rotated[i, :] += plts_center
 
@@ -1202,9 +1204,12 @@ def plate_flags(range_x, range_y, range_z, U,
                    (y >= upper_cube[0, 1]) and (y <= upper_cube[1, 1]) and \
                    (z >= upper_cube[0, 2]) and (z <= upper_cube[1, 2]):
                     r = np.array([x, y, z]) - plts_center
-                    r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
-                                          axis=(0, 0, 1), deg=-alpha),
-                                   axis=(1, 0, 0), deg=-gamma)
+                    # r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
+                    #                       axis=(0, 0, 1), deg=-alpha),
+                    #                axis=(1, 0, 0), deg=-gamma)
+                    r_rot = rotate(rotate(rotate(r, axis=axis, deg=-gamma),
+                                          axis=(0, 1, 0), deg=-beta),
+                                   axis=(0, 0, 1), deg=-alpha)
                     # define masks for upper and lower plates
                     upper_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \
@@ -1215,9 +1220,12 @@ def plate_flags(range_x, range_y, range_z, U,
                    (y >= lower_cube[0, 1]) and (y <= lower_cube[1, 1]) and \
                    (z >= lower_cube[0, 2]) and (z <= lower_cube[1, 2]):
                     r = np.array([x, y, z]) - plts_center
-                    r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
-                                          axis=(0, 0, 1), deg=-alpha),
-                                   axis=(1, 0, 0), deg=-gamma)
+                    # r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
+                    #                       axis=(0, 0, 1), deg=-alpha),
+                    #                axis=(1, 0, 0), deg=-gamma)
+                    r_rot = rotate(rotate(rotate(r, axis=axis, deg=-gamma),
+                                          axis=(0, 1, 0), deg=-beta),
+                                   axis=(0, 0, 1), deg=-alpha)
                     # define masks for upper and lower plates
                     lower_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \

@@ -10,7 +10,7 @@ import time
 
 if __name__ == '__main__':
     # timestep [sec]
-    dt = 0.7e-7  # 0.4e-7
+    dt = 0.4e-7  # 0.7e-7
 
     # toroidal field on the axis
     Btor = 1.0  # [T]
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     # A4 voltages
     UA4 = 0.0  # [kV]
-    dUA4 = 5.0  # [kV/m]
+    dUA4 = 2.0  # [kV/m]
 
 # %% PRIMARY beamline geometry
     geomT15 = hb.Geometry()
