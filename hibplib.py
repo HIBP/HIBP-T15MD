@@ -372,9 +372,9 @@ class Geometry():
         # coords of center of the central slit
         rs = self.r_dict['slit']
 
-        r_slits, slit_plane_n, slits_spot = define_slits(rs, angles, n_slits,
-                                                         slit_dist, slit_w,
-                                                         slit_l)
+        r_slits, slit_plane_n, slits_spot = define_slits(rs, angles, angles,
+                                                         n_slits, slit_dist,
+                                                         slit_w, slit_l)
         self.slits_edges = r_slits
         self.slit_plane_n = slit_plane_n
         self.slits_spot = slits_spot
@@ -385,24 +385,30 @@ class Geometry():
         if self.an_params.shape[0] == 0:
             print('Analyzer not defined!')
             return
+        # angles of the beamline
+        beamline_angles = copy.deepcopy(self.sec_angles)
+        # set the beamline axis
+        axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
         # angles of the detector normal
         angles = copy.deepcopy(self.sec_angles)
+        angles[0] = -angles[0]
 
         # analyzer parameters
         XD, YD1, YD2 = self.an_params[5:]
         theta_an = self.an_params[4]
         # distance from slit to detector
         dist = np.sqrt(XD**2 + (YD1 - YD2)**2)
+        # find the vector from slit to detector
+        rd = calc_vector(dist, beamline_angles[0]-theta_an, beamline_angles[1])
+        rd = rotate(rd, axis=axis, deg=beamline_angles[2])
         # angles of the vector from slit to detector
-        alpha_det = np.arctan((YD1 - YD2) / XD) * 180./np.pi - theta_an + \
-            angles[0]
-        beta_det = angles[1]
-        # coords of the center of the central detector
-        self.add_coords('det', 'slit', dist, [alpha_det, beta_det])
-        rd = self.r_dict['det']
+        a, b = calc_angles(rd)
+        # add coords of the center of the central detector
+        self.add_coords('det', 'slit', dist, [a, b])
 
-        angles[0] = -angles[0]
-        r_det, det_plane_n, det_spot = define_slits(rd, angles, n_det,
+        r_det, det_plane_n, det_spot = define_slits(self.r_dict['det'],
+                                                    beamline_angles,
+                                                    angles, n_det,
                                                     det_dist, det_w, det_l)
         self.det_edges = r_det
         self.det_plane_n = det_plane_n
@@ -509,9 +515,12 @@ def plot_slits(r_slits, spot, ax, axes='XY', n_slit='all', color='g'):
 
 
 # %%
-def define_slits(r0, angles, n_slits, slit_dist, slit_w, slit_l):
-    slit_alpha, slit_beta, slit_gamma = angles
-    axis = calc_vector(1, slit_alpha, slit_beta)
+def define_slits(r0, beamline_angles, slit_angles,
+                 n_slits, slit_dist, slit_w, slit_l):
+    # set the beamline axis
+    axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
+    # set angles of the normal to the slit plane
+    slit_alpha, slit_beta, slit_gamma = slit_angles
     n_slits = int(n_slits)
     # calculate slits coordinates:
     r_slits = np.zeros([n_slits, 5, 3])
@@ -1134,11 +1143,11 @@ def segm_poly_intersect(polygon_coords, segment_coords):
 
 
 # %%
-def plate_flags(range_x, range_y, range_z, U,
+def plate_flags(range_x, range_y, range_z, U, beamline_angles,
                 plts_geom, plts_angles, plts_center):
 
     alpha, beta, gamma = plts_angles
-    axis = calc_vector(1, alpha, beta)
+    axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
     length, width, thick, gap = plts_geom
 
     # Geometry rotated in system based on central point between plates

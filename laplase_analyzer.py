@@ -43,7 +43,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'A4'
+    plts_name = 'an'
     save_data = True
 
     # define voltages [Volts]
@@ -66,6 +66,7 @@ if __name__ == '__main__':
     drad = np.pi/180.
     # analyzer parameters
     an_params = None
+    theta_an = 0.
 
     # define plates geometry
     if plts_name == 'A2':
@@ -139,16 +140,27 @@ if __name__ == '__main__':
         G = np.round(G, 5)
 
         # center of the coords system should be shifted to the slit center
+        # axis = hb.calc_vector(1, alpha_sec, beta_sec)
         plts_center = np.array([XD/2, gap/2 + YD1, 0])
-        axis = hb.calc_vector(1, alpha, beta)
+        # plts_center = hb.calc_vector(np.linalg.norm(plts_center),
+        #                              alpha_sec, beta_sec)
         plts_center = hb.rotate(plts_center, axis=(0, 0, 1), deg=alpha)
         plts_center = hb.rotate(plts_center, axis=(0, 1, 0), deg=beta)
-        plts_center = hb.rotate(plts_center, axis=axis, deg=gamma)
+        # plts_center = hb.rotate(plts_center, axis=axis, deg=gamma)
 
         an_params = np.array([n_slits, slit_dist, slit_w, G, theta_an,
                               round(XD, 4), round(YD1, 4), round(YD2, 4)])
         print('\n ANALYZER with {} slits is defined'.format(n_slits))
         print('\n G = {}\n'.format(G))
+
+    # set angles of the beamline axis
+    if beamline == 'prim':
+        beamline_angles = np.array([alpha_prim, beta_prim])
+    else:
+        beamline_angles = np.array([alpha_sec, beta_sec])
+    # set plates angles and geometry
+    plts_angles = np.array([alpha, beta, gamma])
+    plts_geom = np.array([length, width, thick, gap])
 
     # Create mesh grid
     # length of the X-edge of the domain [m]
@@ -181,16 +193,13 @@ if __name__ == '__main__':
     # array for electric potential
     U = np.zeros((mx, my, mz))
 
-    plts_angles = np.array([alpha, beta, gamma])
-    plts_geom = np.array([length, width, thick, gap])
-
     # print info
     print('Solving for ' + plts_name)
     print('Geom: ', plts_geom)
     print('Angles: ', plts_angles)
 
     UP_rotated, LP_rotated, upper_plate_flag, lower_plate_flag = \
-        hb.plate_flags(range_x, range_y, range_z, U,
+        hb.plate_flags(range_x, range_y, range_z, U, beamline_angles,
                        plts_geom, plts_angles, plts_center)
 
 # %% solver

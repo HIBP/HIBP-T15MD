@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 10.0  # [kV/m]
+    dUB2 = 20.0  # [kV/m]
 
     # B3 voltages
     UB3 = 10.0  # [kV]
@@ -264,24 +264,24 @@ if __name__ == '__main__':
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Pass trajectory to the Analyzer
-    print('\n Optimizing entrance angle to Analyzer with A4')
-    t1 = time.time()
-    traj_list_a4 = []
-    for tr in copy.deepcopy(traj_list_a3b3):
-        tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
-                            E, B, dt, eps_alpha=0.05)
-        if not tr.IntersectGeometrySec:
-            traj_list_a4.append(tr)
-            print('\n Trajectory saved')
-            UA4 = tr.U[4]
+#     print('\n Optimizing entrance angle to Analyzer with A4')
+#     t1 = time.time()
+#     traj_list_a4 = []
+#     for tr in copy.deepcopy(traj_list_a3b3):
+#         tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
+#                             E, B, dt, eps_alpha=0.05)
+#         if not tr.IntersectGeometrySec:
+#             traj_list_a4.append(tr)
+#             print('\n Trajectory saved')
+#             UA4 = tr.U[4]
 
-    t2 = time.time()
-    print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
+#     t2 = time.time()
+#     print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
 
-# %%
-    hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,
-                     full_primary=False, plot_analyzer=True)
-    hbplot.plot_scan(traj_list_a4, geomT15, 240., Btor, Ipl)
+# # %%
+#     hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,
+#                      full_primary=False, plot_analyzer=True)
+#     hbplot.plot_scan(traj_list_a4, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories
 
