@@ -312,6 +312,8 @@ class Geometry():
     def check_chamb_ent_intersect(self, point1, point2):
         ''' check the intersection between segment 1->2 and chamber entrance
         '''
+        if len(self.chamb_ent) == 0:
+            return False
         if (segm_intersect(point1[0:2], point2[0:2],
                            self.chamb_ent[0], self.chamb_ent[1])) or \
             (segm_intersect(point1[0:2], point2[0:2],
@@ -323,6 +325,8 @@ class Geometry():
     def check_chamb_ext_intersect(self, point1, point2):
         ''' check the intersection between segment 1->2 and chamber exit
         '''
+        if len(self.chamb_ext) == 0:
+            return False
         if (segm_intersect(point1[0:2], point2[0:2],
                            self.chamb_ext[0], self.chamb_ext[1])) or \
             (segm_intersect(point1[0:2], point2[0:2],
@@ -573,7 +577,14 @@ def calc_angles(vector):
     drad = np.pi/180.  # converts degrees to radians
     x, y, z = vector / np.linalg.norm(vector)
     alpha = np.arcsin(y)  # rad
-    beta = np.arcsin(-np.tan(alpha) * z / y)  # rad
+    if abs(y) > 1e-9:
+        beta = np.arcsin(-np.tan(alpha) * z / y)  # rad
+    elif abs(z) < 1e-9:
+        beta = 0.
+    elif abs(x) > 1e-9:
+        beta = np.arctan(-z / x)  # rad
+    else:
+        beta = -np.sign(z) * np.pi/2
     return alpha/drad, beta/drad  # degrees
 
 

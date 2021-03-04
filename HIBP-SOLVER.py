@@ -169,7 +169,7 @@ if __name__ == '__main__':
 # %% Analyzer parameters
     if geomT15.an_params.shape[0] > 0:
         # Analyzer G
-        G = geomT15.an_params[3]
+        G = geomT15.an_params[3] / 1.09
 
         n_slits, slit_dist, slit_w = geomT15.an_params[:3]
 

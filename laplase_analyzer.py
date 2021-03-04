@@ -58,9 +58,9 @@ if __name__ == '__main__':
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
-    alpha_sec = 20.  # angle with X axis in XY plane (alpha)
-    beta_sec = 20.  # angle with X axis in XZ plane (beta)
-    gamma_sec = -20.  # rotation around the X axis (gamma)
+    alpha_sec = 30.  # angle with X axis in XY plane (alpha)
+    beta_sec = 0.  # angle with X axis in XZ plane (beta)
+    gamma_sec = 0.  # rotation around the X axis (gamma)
 
     # convert degrees to radians
     drad = np.pi/180.
@@ -137,7 +137,7 @@ if __name__ == '__main__':
         # G coeff of the analyzer
         G = (XD*np.tan(theta_an*drad) - YD) / (4 * gap *
                                                np.sin(theta_an*drad)**2)
-        G = np.round(G, 5)
+        G = np.round(G, 7)
 
         # center of the coords system should be shifted to the slit center
         # axis = hb.calc_vector(1, alpha_sec, beta_sec)
@@ -175,9 +175,9 @@ if __name__ == '__main__':
     x, y, z = np.meshgrid(range_x, range_y,
                           range_z, indexing='ij')  # [X ,Y, Z]
     # collect xmin, xmax, ymin, ymax, zmin, zmax, delta
-    domain = np.array([range_x[0], range_x[-1]+delta,
-                       range_y[0], range_y[-1]+delta,
-                       range_z[0], range_z[-1]+delta, delta])
+    domain = np.array([range_x[0], range_x[-1]+delta/2,
+                       range_y[0], range_y[-1]+delta/2,
+                       range_z[0], range_z[-1]+delta/2, delta])
 
     mx = range_x.shape[0]
     my = range_y.shape[0]
