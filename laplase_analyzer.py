@@ -56,7 +56,7 @@ if __name__ == '__main__':
     plts_center = np.array([0., 0., 0.])  # plates center
     # initially plates are parallel to XZ plane
     # define primary beamline angles
-    alpha_prim = 20.  # angle with X axis in XY plane (alpha)
+    alpha_prim = 30.  # angle with X axis in XY plane (alpha)
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
@@ -215,7 +215,7 @@ if __name__ == '__main__':
     print("time needed for calculation: {:.5f} s\n".format(t2-t1))
 
 # %% save electric field
-    Ex, Ey, Ez = -1*np.gradient(U, delta)  # Ex, Ey, Ez
+    Ex, Ey, Ez = np.gradient(-1*U, delta)  # Ex, Ey, Ez
     # set zero E in the cells corresponding to plates
     Ex[upper_plate_flag], Ey[upper_plate_flag], Ez[upper_plate_flag] = 0, 0, 0
     Ex[lower_plate_flag], Ey[lower_plate_flag], Ez[lower_plate_flag] = 0, 0, 0
