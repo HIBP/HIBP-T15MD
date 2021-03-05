@@ -65,7 +65,7 @@ def biot_savart(points, wires):
 #    B = np.array([calc_Bpoint(r, IdL, r1) * 1e-7 for r in points])
 
     # multiprocessing
-    n_workers = mp.cpu_count()
+    n_workers = mp.cpu_count() - 1
     s = Parallel(n_jobs=n_workers)(delayed(calc_Bpoint)(r, IdL, r1) for
                                    r in points)
     B = np.array(s)*1e-7
@@ -77,7 +77,7 @@ def biot_savart(points, wires):
 
 
 # %% Poloidal field calculation
-def calc_Bpol(pf_coils, points, nx=3, ny=3):
+def calc_Bpol(pf_coils, points, nx=3, ny=3, disc_len=0.2):
     '''
     function calculates poloidal magnetic field from a toroidal coil
     pf_coils - dictionary with information about coils
@@ -87,7 +87,6 @@ def calc_Bpol(pf_coils, points, nx=3, ny=3):
     '''
     print('Calculating Poloidal Field')
 
-    disc_len = 0.2  # discretisation length for wire [m]
     B = {}
     wires_total = []
     for coil in pf_coils.keys():
@@ -134,7 +133,7 @@ def calc_Bpol(pf_coils, points, nx=3, ny=3):
 
 
 # %% Toroidal field calculation
-def calc_Btor(points):
+def calc_Btor(points, disc_len=0.2):
     '''
     function calculates toroidal field in points
     points - np array with x,y,z of n points
@@ -146,7 +145,6 @@ def calc_Btor(points):
 
     n_xy = 4         # number of circuits in poloidal direction
     n_z = 4          # number of circuits in toroidal direction
-    disc_len = 0.2   # discretisation length for wire [m]
     curr = curr_tot/(n_xy*n_z)  # current in one circuit
     # initial toroidal angle of the first coil
     initial_coil_angle = (360/n_coils)*0.5
@@ -228,7 +226,7 @@ def import_Jplasm(filename):
     return J_vals, x_vals, y_vals
 
 
-def calc_Bplasm(points, filename, CurrTot):
+def calc_Bplasm(points, filename, CurrTot, disc_len=0.2):
     ''' calculate plasma field in points
     filename - Tokameq file with Jpl distribution
     CurrTot - total plasma current in [MA] '''
@@ -236,7 +234,6 @@ def calc_Bplasm(points, filename, CurrTot):
     J_vals, x_vals, y_vals = import_Jplasm(filename)
 
     Jtot = np.sum(J_vals)  # total J, used for normalisation
-    disc_len = 0.2  # discretisation length for wire [m]
 
     # define toroidal angle
     nfi = 40  # number of steps along toroidal angle
@@ -319,11 +316,12 @@ if __name__ == '__main__':
     Ipl = 1.0  # Plasma current [MA]
 
     # Define grid points to caculate B
-    resolution = 0.1    # [m]
+    resolution = 0.1  # 0.1    # [m]
+    disc_len = 0.2  # discretisation length for wire [m]
     # xmin ymin zmin [m]
-    volume_corner1 = (1.3, -0.8, -1.0)
+    volume_corner1 = (1.2, -1.0, -1.0)
     # xmax ymax zmax [m]
-    volume_corner2 = (5.0+resolution, 2.5+resolution, 0.5+resolution)
+    volume_corner2 = (5.3+resolution, 1.8+resolution, 0.5+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
@@ -340,14 +338,14 @@ if __name__ == '__main__':
           ' volume_corner2 = {} [m]\n'.format(volume_corner2))
 
     # calculate B field at given points
-    B_tor, wires_tor = calc_Btor(points)
+    B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
 
     # Txt with plasma current calculated in Tokameq
     tokameq_file = '1MA_sn.txt'
-    B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl)
+    B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl, disc_len=disc_len)
 
     pf_coils = hb.import_PFcoils('PFCoils.dat')
-    B_pol_dict, wires_pol = calc_Bpol(pf_coils, points)
+    B_pol_dict, wires_pol = calc_Bpol(pf_coils, points, disc_len=disc_len)
 
 #        wires = wires_pol + wires_tor + wires_pl
 

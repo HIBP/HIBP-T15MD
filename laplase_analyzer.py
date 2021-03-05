@@ -17,7 +17,9 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
     U1 = np.full_like(U, 1e3)
     step = 0
 
-    while np.amax(np.abs(U1-U0)) > eps:
+    i, j, k = U.shape[0] // 2, U.shape[1] // 2, U.shape[2] // 2
+    while np.abs(U1[i, j, k] - U0[i, j, k]) > eps:
+    # while np.amax(np.abs(U1-U0)) > eps:
         step += 1
         U0 = np.copy(U)
 
@@ -121,7 +123,7 @@ if __name__ == '__main__':
         # analyzer geometry
         theta_an = 30.
         width = 0.2  # along Z [m]
-        thick = 0.02  # [m]
+        thick = 0.02  # 0.004  # [m]
         gap = 0.1  # distance between plates along Y [m]
 
         YD1 = 0.02 + thick + np.cos(theta_an*drad) * (n_slits//2 * slit_dist
@@ -130,7 +132,7 @@ if __name__ == '__main__':
         YD = YD1 + YD2
         XD = 3 * np.sqrt(3) * YD
 
-        length = 1.2*XD  # along X [m]
+        length = 1.2 * XD  # along X [m]
 
         alpha, beta, gamma = alpha_sec-theta_an, beta_sec, gamma_sec
 
@@ -213,7 +215,7 @@ if __name__ == '__main__':
     print("time needed for calculation: {:.5f} s\n".format(t2-t1))
 
 # %% save electric field
-    Ex, Ey, Ez = np.gradient(-1*U, delta)  # Ex, Ey, Ez
+    Ex, Ey, Ez = -1*np.gradient(U, delta)  # Ex, Ey, Ez
     # set zero E in the cells corresponding to plates
     Ex[upper_plate_flag], Ey[upper_plate_flag], Ez[upper_plate_flag] = 0, 0, 0
     Ex[lower_plate_flag], Ey[lower_plate_flag], Ez[lower_plate_flag] = 0, 0, 0

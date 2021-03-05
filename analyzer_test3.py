@@ -14,7 +14,7 @@ def Bzero(r):
 # %% ANALYZER test
 
 # timestep [sec]
-dt = 0.4e-7  # 0.7e-7
+dt = 0.025e-7  # 0.4e-7  # 0.7e-7
 
 q = 1.60217662e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
@@ -99,7 +99,7 @@ t1 = time.time()
 
 print('\n\nE = {} keV; UA2 = {} kV\n'.format(Ebeam, UA2))
 # list of starting voltages
-U_list = [1.09*Ebeam/(2*G)]
+U_list = [Ebeam/(2*G)]
 
 traj_list_test = []
 # create new trajectory object
