@@ -45,7 +45,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'an'
+    plts_name = 'B3'
     save_data = True
 
     # define voltages [Volts]
@@ -60,9 +60,9 @@ if __name__ == '__main__':
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
-    alpha_sec = 30.  # angle with X axis in XY plane (alpha)
-    beta_sec = 0.  # angle with X axis in XZ plane (beta)
-    gamma_sec = 0.  # rotation around the X axis (gamma)
+    alpha_sec = 0.  # angle with X axis in XY plane (alpha)
+    beta_sec = 20.  # angle with X axis in XZ plane (beta)
+    gamma_sec = -20.  # rotation around the X axis (gamma)
 
     # convert degrees to radians
     drad = np.pi/180.

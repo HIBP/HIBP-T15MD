@@ -19,16 +19,16 @@ if __name__ == '__main__':
     m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
     # initial beam energy range
-    dEbeam = 20.
-    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
+    dEbeam = 60.
+    Ebeam_range = np.arange(120., 240. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
-    dUA2 = 5.
-    UA2_range = np.arange(0., 0. + dUA2, dUA2)  # [kV]
+    dUA2 = 3.
+    UA2_range = np.arange(0., 21. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 20.0  # [kV/m]
+    dUB2 = 15.0  # [kV/m]
 
     # B3 voltages
     UB3 = 10.0  # [kV]
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 20.
+    alpha_prim = 30.  # 20.
     beta_prim = -10.
     gamma_prim = 0.
     geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 20.
+    alpha_sec = 10.
     beta_sec = 20.
     gamma_sec = -20.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
@@ -126,6 +126,7 @@ if __name__ == '__main__':
 # %% print info
     print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
     print('Primary beamline angles: ', geomT15.prim_angles[0:2])
+    print('Secondary beamline angles: ', geomT15.sec_angles[0:3])
     print('r0 = ', np.round(geomT15.r_dict['r0'], 3))
     print('r_aim = ', r_aim)
     print('r_slit = ', np.round(geomT15.r_dict['slit'], 3))
@@ -169,7 +170,7 @@ if __name__ == '__main__':
 # %% Analyzer parameters
     if geomT15.an_params.shape[0] > 0:
         # Analyzer G
-        G = geomT15.an_params[3] / 1.09
+        G = geomT15.an_params[3]  # / 1.09
 
         n_slits, slit_dist, slit_w = geomT15.an_params[:3]
 
@@ -183,6 +184,7 @@ if __name__ == '__main__':
         print('\nAnalyzer with {} slits added to Geometry'.format(n_slits))
         print('G = {}\n'.format(G))
     else:
+        G = 0.
         print('\nNO Analyzer')
 
 # %% Load Magnetic Field
@@ -233,7 +235,7 @@ if __name__ == '__main__':
 
     hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
     hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
-                    plot_analyzer=True, plot_traj=True, plot_all=True)
+                    plot_analyzer=False, plot_traj=True, plot_all=True)
 
     # hbplot.plot_scan(traj_list_passed, geomT15, 240., Btor, Ipl)
     # hbplot.plot_scan(traj_list_passed, geomT15, 120., Btor, Ipl)

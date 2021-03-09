@@ -965,7 +965,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
     # find which secondaries get into slits spot
     # list of sec trajectories indexes which get into slits spot
     sec_ind = []
-    for i in range(len(tr.Fan)):
+    for i in range(1, len(tr.Fan)):
         fan_tr = tr.Fan[i]
         intersect_coords_flat = np.delete(fan_tr[-1, :3], ax_index, 0)
         if slits_spot_poly.contains_point(intersect_coords_flat):
