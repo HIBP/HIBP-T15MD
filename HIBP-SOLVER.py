@@ -4,7 +4,6 @@ import hibpplotlib as hbplot
 import copy
 import time
 
-
 # %%
 ''' MAIN '''
 
@@ -19,16 +18,16 @@ if __name__ == '__main__':
     m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
     # initial beam energy range
-    dEbeam = 60.
-    Ebeam_range = np.arange(120., 240. + dEbeam, dEbeam)  # [keV]
+    dEbeam = 20.
+    Ebeam_range = np.arange(100., 120. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(0., 21. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(-12., 36. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 15.0  # [kV/m]
+    dUB2 = 12.0  # [kV/m]
 
     # B3 voltages
     UB3 = 10.0  # [kV]
@@ -51,7 +50,7 @@ if __name__ == '__main__':
     geomT15.elon = 1.8  # plasma elongation
 
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 30.  # 20.
+    alpha_prim = 20.  # 30.
     beta_prim = -10.
     gamma_prim = 0.
     geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
@@ -94,7 +93,7 @@ if __name__ == '__main__':
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 10.
+    alpha_sec = 15.
     beta_sec = 20.
     gamma_sec = -20.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
@@ -199,7 +198,7 @@ if __name__ == '__main__':
 # %% Optimize Primary Beamline
     print('\n Primary beamline optimization')
     t1 = time.time()
-    # define list of trajectores that hit r_aim
+    # define list of trajectories that hit r_aim
     traj_list = []
 
     for Ebeam in Ebeam_range:
@@ -241,6 +240,10 @@ if __name__ == '__main__':
     # hbplot.plot_scan(traj_list_passed, geomT15, 120., Btor, Ipl)
     # hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
     # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
+
+# %% Save traj list
+
+    hb.save_traj_list(traj_list_passed, Btor, Ipl, r_aim)
 
 # %% Optimize Secondary Beamline
     print('\n Secondary beamline optimization')

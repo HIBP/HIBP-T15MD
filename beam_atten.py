@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from scipy import interpolate
+from scipy import interpolate, integrate
 import hibplib as hb
 import hibpplotlib as hbplot
 import matplotlib.colors as colors
@@ -105,9 +105,9 @@ def integrate_traj(tr, ne0, Te0, sigmaEff12, sigmaEff23):
         ne_loc = 1e19 * ne(r_loc, ne0)
         sigmaEff_loc = sigmaEff12(Te_loc) / v0
     else:
-        Te_loc = 0.
-        ne_loc = 0.
-        sigmaEff_loc = 0.
+        Te_loc = 0.1  # 0.
+        ne_loc = 1e19 * ne0 * 1e-2  # 0.
+        sigmaEff_loc = sigmaEff12(Te_loc) / v0  # 0.
 
     # calculate total value with integrals
     lam = 0.005  # [m]
@@ -178,13 +178,21 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 1.5  # [x10^19 m-3]
+    ne0 = 1.5  # 1.5  # [x10^19 m-3]
     Te0 = 1.0  # [keV]
 
-    # tr_list = copy.deepcopy(traj_list_passed)
-    tr_list = copy.deepcopy(traj_list_a3b3)
+    # %% import trajectories
+    tr_list = copy.deepcopy(traj_list_passed)
+    # tr_list = copy.deepcopy(traj_list_a3b3)
+#    filename = 'B{}_I{}//E80-320_UA2-20-80_alpha30_beta0_x250y-20z0.pkl'.format(str(int(Btor)), str(int(Ipl)))
+#    traj_list = hb.ReadTrajList(filename, dirname='output')
 
     # %% LOAD IONIZATION RATES
+    if tr_list[0].m/m_p > 200.:
+        ion = 'Tl'
+    else:
+        ion = 'Cs'
+
     # <sigma*v> for Ion+ + e -> Ion2+
     filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
         '+_e_' + ion + '2+.txt'
@@ -204,10 +212,6 @@ if __name__ == '__main__':
                                                kind='linear')  # Te in [keV]
 
     # %%
-    # import trajectories
-#    filename = 'B{}_I{}//E80-320_UA2-20-80_alpha30_beta0_x250y-20z0.pkl'.format(str(int(Btor)), str(int(Ipl)))
-#    traj_list = hb.ReadTrajList(filename, dirname='output')
-
     Itot = np.zeros([0, 12])
     for tr in tr_list:
         I_integrated = integrate_traj(tr, ne0, Te0, sigmaEff12_e_interp,
@@ -257,9 +261,8 @@ if __name__ == '__main__':
               elon*np.sqrt((r_plasma**2-x_minus**2) / egg_fun(x_minus))]
     plt.plot(1.5+np.c_[x_minus, x_minus], y, color='m', linestyle='-')
 
-    # %% plot grid
+    # %% plot grid of attenuation
     fig, ax1 = plt.subplots()
-
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 
     # plot geometry
@@ -281,14 +284,14 @@ if __name__ == '__main__':
 
     linestyle_E = '-'
     marker_E = 'p'
+    E_grid = np.full((Itot.shape[0], 3), np.nan)
+    c = Itot[:, 3]  # set color as Itot/I0
+    k = -1
     # make a grid of constant E
     for i_E in range(0, N_E, 1):
-        k = -1
         mask = (abs(Itot[:, 0] - Elist[i_E]) < 0.01)
-        c = Itot[mask, 3]  # set color as Itot/I0
-        E_grid = np.full((c.shape[0], 3), np.nan)
         for tr in tr_list:
-            if tr.Ebeam == Elist[i_E]:
+            if abs(tr.Ebeam - Elist[i_E]) < 0.1:
                 k += 1
                 # take the 1-st point of secondary trajectory
                 x = tr.RV_sec[0, 0]
@@ -296,23 +299,59 @@ if __name__ == '__main__':
                 z = tr.RV_sec[0, 2]
                 E_grid[k, :] = [x, y, z]
 
-        sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1],
-                         linestyle=linestyle_E,
-                         norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
-                         c=c,
-                         cmap='Reds',
-                         marker=marker_E,
-                         label=str(int(Elist[i_E]))+' keV')
+    sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
+                     linestyle=linestyle_E,
+                     norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
+                     c=c,
+                     cmap='jet',
+                     marker=marker_E,
+                     label=str(int(Elist[i_E]))+' keV')
     plt.colorbar(sc)
+
+    # %% plot grid of angles
+    angles = np.full((Itot.shape[0], 2), np.nan)
+    k = -1
+    for tr in tr_list:
+        k += 1
+        angles[k, :] = hb.calc_angles(tr.RV_sec[-1, 3:])
+
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY', plot_sep=True)
+    geom.plot_geom(ax2, axes='XY', plot_sep=True)
+
+    hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
+    hbplot.set_axes_param(ax2, 'X (m)', 'Y (m)')
+
+    # plot grid with alpha coloring
+    sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
+                     linestyle=linestyle_E,
+                     c=angles[:, 0],
+                     cmap='jet',
+                     marker=marker_E,
+                     label=str(int(Elist[i_E]))+' keV')
+    plt.colorbar(sc, ax=ax1, label='alpha (deg)')
+
+    # plot grid with beta coloring
+    sc = ax2.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
+                     linestyle=linestyle_E,
+                     c=angles[:, 1],
+                     cmap='jet',
+                     marker=marker_E,
+                     label=str(int(Elist[i_E]))+' keV')
+    plt.colorbar(sc, ax=ax2, label='beta (deg)')
 
     # %% plot ne and Te profiles
     fig, axs = plt.subplots(1, 2, sharex=True)
     rho = np.arange(0, 1.01, 0.01)
+    ne_avg = round(integrate.simps(ne(rho, ne0), rho), 1)
+
     axs[0].plot(rho, Te(rho, Te0))
     axs[0].set_ylabel(r'$\ T_e (keV)$')
 
     axs[1].plot(rho, ne(rho, ne0))
     axs[1].set_ylabel(r'$\ n_e  (x10^{19} m^{-3})$')
+    axs[1].set_title(r'$\ \barn_e =$' + str(ne_avg) + r'$\ x 10^{19} m^{-3}$')
 
     # format axes
     for ax in fig.get_axes():
@@ -358,12 +397,12 @@ if __name__ == '__main__':
     plt.semilogx(sigmaV12_e[:, 0], sigmaV12_e[:, 1]*1e6, 'o', color='k',
                  label=r'$Tl^+$+e $\rightarrow$ $Tl^{2+}$+2e')
     Temp = np.linspace(min(sigmaV12_e[:, 0]), max(sigmaV12_e[:, 0]), num=10000)
-    plt.semilogx(Temp, sigmaEff12_e_interp(Temp/1e3)*1e6*v0, '-', color='k')
+    plt.semilogx(Temp, sigmaEff12_e_interp(Temp/1e3)*1e6, '-', color='k')
 
     plt.semilogx(sigmaV23_e[:, 0], sigmaV23_e[:, 1]*1e6, '^', color='k',
                  label=r'$Tl^{2+}$+e $\rightarrow$ $Tl^{3+}$+2e')
     Temp = np.linspace(min(sigmaV23_e[:, 0]), max(sigmaV23_e[:, 0]), num=40000)
-    plt.semilogx(Temp, sigmaEff23_e_interp(Temp/1e3)*1e6*v0, '--', color='k')
+    plt.semilogx(Temp, sigmaEff23_e_interp(Temp/1e3)*1e6, '--', color='k')
 
     plt.xlabel(r'$E_{e}$ (eV)')
     plt.ylabel(r'<$\sigma$V> ($cm^3/s$)')
