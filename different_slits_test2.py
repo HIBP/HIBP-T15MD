@@ -6,13 +6,13 @@ import copy
 # %%
 ''' pass trajectories to different slits
 '''
-Ebeam = 240.
-UA2 = 5.0
+Ebeam = 140.
+UA2 = 6.0
 
 n_slits = 7
 # add slits to Geometry
-geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
-                  slit_l=0.1)  # -20.)
+# geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
+#                   slit_l=0.1)  # -20.)
 r_slits = geomT15.slits_edges
 rs = geomT15.r_dict['slit']
 # calculate normal to slit plane
@@ -30,7 +30,7 @@ for tr in traj_list_copy:
     else:
         continue
 
-    tr = hb.pass_to_slits(tr, dt, E, B, geomT15, timestep_divider=15)
+    tr = hb.pass_to_slits(tr, dt, E, B, geomT15, timestep_divider=10)
     break
 
 # %% plot trajectories

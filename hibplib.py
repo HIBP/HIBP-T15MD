@@ -465,7 +465,7 @@ class Geometry():
         if plot_aim:
             # plot aim dot
             ax.plot(self.r_dict['aim'][index_X], self.r_dict['aim'][index_Y],
-                    '*', color='r')
+                    '*', color='b')
             # plot the center of the central slit
             ax.plot(self.r_dict['slit'][index_X], self.r_dict['slit'][index_Y],
                     '*', color='g')

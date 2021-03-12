@@ -12,8 +12,8 @@ UA2 = 3.0
 
 n_slits = 7
 # add slits to Geometry
-geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
-                  slit_l=0.1, slit_gamma=-20.)
+# geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
+#                   slit_l=0.1, slit_gamma=-20.)
 r_slits = geomT15.slits_edges
 rs = geomT15.r_dict['slit']
 # calculate normal to slit plane
@@ -26,7 +26,7 @@ traj_list_copy = copy.deepcopy(traj_list_a3b3)
 # %%
 # set number of filaments in a beam
 d_beam = 0.02  # beam diameter [m]
-n_filaments_xy = 7  # number of filaments in xy plane (must be ODD)
+n_filaments_xy = 5  # number of filaments in xy plane (must be ODD)
 skip_center_traj = True
 n_gamma = 4  # number of chords in beam cross-section
 foc_len = 50  # distance from the first point of the trajectory to the focus

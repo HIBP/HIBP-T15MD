@@ -3,6 +3,33 @@ import hibplib as hb
 import hibpplotlib as hbplot
 import copy
 import time
+from multiprocessing import Process, Manager
+
+
+def test_B2(traj_list, q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
+            U_list, dt, geomT15, dUB2, E, B, stop_plane_n):
+    UA2, UB2 = U_list[0:2]
+    print('\n\nE = {} keV; UA2 = {} kV\n'.format(Ebeam, UA2))
+    # # list of starting voltages
+    # U_list = [UA2, UB2, UA3, UB3, UA4, Ebeam/(2*G)]
+    # create new trajectory object
+    tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
+                 U_list, dt)
+
+    tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt,
+                        stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
+
+    if tr.IntersectGeometry:
+        print('NOT saved, primary intersected geometry')
+        # continue
+    if tr.IsAimXY and tr.IsAimZ:
+        traj_list.append(tr)
+        print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U[1]))
+        U_list[1] = tr.U[1]  # set UB2
+    else:
+        print('NOT saved, sth wrong')
+
+# traj_list = []
 
 # %%
 ''' MAIN '''
@@ -18,19 +45,19 @@ if __name__ == '__main__':
     m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
     # initial beam energy range
-    dEbeam = 20.
-    Ebeam_range = np.arange(140., 140. + dEbeam, dEbeam)  # [keV]
+    dEbeam = 60.
+    Ebeam_range = np.arange(120., 240. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(3., 6. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(0., 21. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 12.0  # [kV/m]
+    dUB2 = 15.0  # [kV/m]
 
     # B3 voltages
-    UB3 = -20.0  # [kV]
+    UB3 = 10.0  # [kV]
     dUB3 = 20.0  # [kV/m]
 
     # A3 voltages
@@ -93,7 +120,7 @@ if __name__ == '__main__':
 
 # %% SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 15.
+    alpha_sec = 10.
     beta_sec = 20.
     gamma_sec = -20.
     geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
@@ -195,40 +222,37 @@ if __name__ == '__main__':
         dirname = 'magfield'
         B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
 
+# %% multiprocessing
+    man = Manager()
+    traj_list = man.list()
+    U_list = man.list([0.0, UB2, UA3, UB3, UA4, 0.0])
+
 # %% Optimize Primary Beamline
     print('\n Primary beamline optimization')
     t1 = time.time()
-    # define list of trajectories that hit r_aim
-    traj_list = []
 
     for Ebeam in Ebeam_range:
+        procs = []
+        U_list[-1] = Ebeam/(2*G)
         for UA2 in UA2_range:
-            print('\n\nE = {} keV; UA2 = {} kV\n'.format(Ebeam, UA2))
             # list of starting voltages
-            U_list = [UA2, UB2, UA3, UB3, UA4, Ebeam/(2*G)]
-
-            # create new trajectory object
-            tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
-                         U_list, dt)
-
-            tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt,
-                                stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
-
-            if tr.IntersectGeometry:
-                print('NOT saved, primary intersected geometry')
-                continue
-            if tr.IsAimXY and tr.IsAimZ:
-                traj_list.append(tr)
-                print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U[1]))
-                UB2 = tr.U[1]
-            else:
-                print('NOT saved, sth wrong')
+            U_list[0] = UA2
+            # create process
+            p = Process(target=test_B2,
+                        args=(traj_list, q, m_ion, Ebeam, r0,
+                              alpha_prim, beta_prim, U_list, dt, geomT15,
+                              dUB2, E, B, stop_plane_n))
+            p.start()
+            procs.append(p)
+        for p in procs:
+            p.join()
 
     t2 = time.time()
     print("\n B2 voltage optimized, t = {:.1f} s\n".format(t2-t1))
 
 # %%
-    traj_list_passed = copy.deepcopy(traj_list)
+    # traj_list_passed = copy.deepcopy(traj_list)
+    traj_list_passed = list(traj_list)
 
 # %% Additonal plots
 
@@ -243,7 +267,7 @@ if __name__ == '__main__':
 
 # %% Save traj list
 
-    # hb.save_traj_list(traj_list_passed, Btor, Ipl, r_aim)
+    hb.save_traj_list(traj_list_passed, Btor, Ipl, r_aim)
 
 # %% Optimize Secondary Beamline
     print('\n Secondary beamline optimization')
@@ -265,11 +289,8 @@ if __name__ == '__main__':
 
 # %%
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
-                     full_primary=False, plot_analyzer=True,
-                     subplots_vertical=True, scale=3.5)
-    hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
-                     full_primary=False, plot_analyzer=False,
-                     plot_det_line=False, subplots_vertical=True, scale=5)
+                     full_primary=False, plot_analyzer=True)
+    hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl)
 
 # %% Pass trajectory to the Analyzer
 #     print('\n Optimizing entrance angle to Analyzer with A4')
@@ -286,12 +307,10 @@ if __name__ == '__main__':
 #     t2 = time.time()
 #     print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
 
-# %%
-    # hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,
-    #                   full_primary=False, plot_analyzer=True)
-    # hbplot.plot_scan(traj_list_a4, geomT15, 240., Btor, Ipl,
-    #                   full_primary=False, plot_analyzer=False,
-    #                   plot_det_line=False, subplots_vertical=True, scale=5)
+# # %%
+#     hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,
+#                      full_primary=False, plot_analyzer=True)
+#     hbplot.plot_scan(traj_list_a4, geomT15, 240., Btor, Ipl)
 
 # %% Save list of trajectories
 

@@ -41,7 +41,7 @@ def Te(rho, Te0):
     rho - normalized radius
     Te0 - central temperature
     '''
-    return Te0/(1 + (rho/0.5)**2)**(4/3)
+    return Te0/(1 + (rho/1)**2)**(4/3)
 #    return Te0*rho/rho
 
 
@@ -178,8 +178,8 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 1.5  # 1.5  # [x10^19 m-3]
-    Te0 = 1.0  # [keV]
+    ne0 = 5  # 1.5  # [x10^19 m-3]
+    Te0 = 2.0  # [keV]
 
     # %% import trajectories
     tr_list = copy.deepcopy(traj_list_passed)
@@ -315,7 +315,7 @@ if __name__ == '__main__':
         k += 1
         angles[k, :] = hb.calc_angles(tr.RV_sec[-1, 3:])
 
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_sep=True)
     geom.plot_geom(ax2, axes='XY', plot_sep=True)
@@ -330,7 +330,7 @@ if __name__ == '__main__':
                      cmap='jet',
                      marker=marker_E,
                      label=str(int(Elist[i_E]))+' keV')
-    plt.colorbar(sc, ax=ax1, label='alpha (deg)')
+    plt.colorbar(sc, ax=ax1, label=r'$\alpha (deg)$')
 
     # plot grid with beta coloring
     sc = ax2.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                      cmap='jet',
                      marker=marker_E,
                      label=str(int(Elist[i_E]))+' keV')
-    plt.colorbar(sc, ax=ax2, label='beta (deg)')
+    plt.colorbar(sc, ax=ax2, label=r'$\beta (deg)$')
 
     # %% plot ne and Te profiles
     fig, axs = plt.subplots(1, 2, sharex=True)

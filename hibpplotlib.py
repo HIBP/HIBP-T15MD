@@ -494,7 +494,7 @@ def plot_geometry(ax, TF_coil_filename='TFCoil.dat',
 
 
 # %%
-def set_axes_param(ax, xlabel, ylabel):
+def set_axes_param(ax, xlabel, ylabel, isequal=True):
     ax.grid(True)
     ax.grid(which='major', color='tab:gray')  # draw primary grid
     ax.minorticks_on()  # make secondary ticks on axes
@@ -504,12 +504,13 @@ def set_axes_param(ax, xlabel, ylabel):
     ax.yaxis.set_tick_params(width=2)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.axis('equal')
+    if isequal:
+        ax.axis('equal')
 
 
 # %%
 def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
-              plot_analyzer=False):
+              plot_analyzer=False, subplots_vertical=False, scale=5):
     '''
     plot primary and secondary trajectories
     :param traj_list: list of trajectories
@@ -520,7 +521,12 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
     :param Ipl: plasma current [MA]
     :return: None
     '''
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+    if subplots_vertical:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True,
+                                       gridspec_kw={'height_ratios':
+                                                    [scale, 1]})
+    else:
+        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
@@ -657,7 +663,8 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
 
 # %%
 def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
-              plot_analyzer=False, plot_det_line=False):
+              plot_analyzer=False, plot_det_line=False,
+              subplots_vertical=False, scale=5):
     '''
     plot scan for one beam with particular energy in 2 planes: xy, xz
     :param traj_list: list of trajectories
@@ -667,7 +674,12 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     :param Ipl: plasma current [MA]
     :return: None
     '''
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+    if subplots_vertical:
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True,
+                                       gridspec_kw={'height_ratios':
+                                                    [scale, 1]})
+    else:
+        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
@@ -879,10 +891,13 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
 
 
 # %%
-def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
+def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
 
     # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
-    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+    fig, axs = plt.subplots(2, 2, sharex='col', #sharey='row',
+                            gridspec_kw={'height_ratios': [scale, 1],
+                                         'width_ratios': [scale, 1]})
+    ax1, ax2, ax3 = axs[0, 0], axs[1, 0], axs[0, 1]
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
@@ -897,7 +912,7 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
     # draw slits
     geom.plot_analyzer(ax1, axes='XY')
-    # geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot_analyzer(ax2, axes='XZ')
     geom.plot_analyzer(ax3, axes='ZY')
 
     # get number of slits
@@ -946,7 +961,7 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all'):
 # %%
 def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
              plot_prim=True, plot_sec=False, plot_zones=True, plot_cut=False,
-              alpha_xy=10, alpha_zy=20):
+             plot_flux=False, alpha_xy=10, alpha_zy=20):
 
     fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
@@ -958,7 +973,7 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
                   .format(tr.Ebeam, tr.U[0], Btor, Ipl))
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_aim=False)
+    geom.plot_geom(ax1, axes='XY', plot_aim=False, plot_sep=False)
     geom.plot_geom(ax3, axes='ZY', plot_aim=False)
     geom.plot_analyzer(ax1, axes='XY')
     # geom.plot_analyzer(ax2, axes='XZ')
@@ -970,6 +985,12 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
     colors = colors[:n_slits]
+
+    # plot magnetic flux lines
+    if plot_flux:
+        Psi_vals, x_vals, y_vals, bound_flux = hb.import_Bflux('1MA_sn.txt')
+        ax1.contour(x_vals, y_vals, Psi_vals, 100,
+                    colors=['k'], linestyles=['-'])
 
     # plot trajectories
     for tr in fat_beam_list:
@@ -986,7 +1007,7 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
                     ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color=c)
 
     if n_slit == 'all':
-        slits = range(n_slits)
+        slits = reversed(range(n_slits))
     else:
         slits = [n_slit]
 
@@ -1024,12 +1045,12 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
             hull_xy = alphashape.alphashape(coords[:, [0, 1]], alpha_xy)
             hull_pts_xy = hull_xy.exterior.coords.xy
             ax1.fill(hull_pts_xy[0], hull_pts_xy[1], '--', color=c)
-            ax1.plot(hull_pts_xy[0], hull_pts_xy[1], color='k', lw=0.5)
+            # ax1.plot(hull_pts_xy[0], hull_pts_xy[1], color='k', lw=0.5)
             # plot in ZY plane
             hull_zy = alphashape.alphashape(coords[:, [2, 1]], alpha_zy)
             hull_pts_zy = hull_zy.exterior.coords.xy
             ax3.fill(hull_pts_zy[0], hull_pts_zy[1], '--', color=c)
-            ax3.plot(hull_pts_zy[0], hull_pts_zy[1], color='k', lw=0.5)
+            # ax3.plot(hull_pts_zy[0], hull_pts_zy[1], color='k', lw=0.5)
 
 
 # %%
