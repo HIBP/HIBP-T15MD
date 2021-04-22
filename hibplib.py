@@ -1593,7 +1593,7 @@ def read_traj_list(fname, dirname='output'):
 
 
 # %%
-def save_png(fig, name, save_dir='Results/Grids'):
+def save_png(fig, name, save_dir='output'):
     """
     Saves picture as name.png
     Args:
