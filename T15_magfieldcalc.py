@@ -316,7 +316,7 @@ if __name__ == '__main__':
     Ipl = 1.0  # Plasma current [MA]
 
     # Define grid points to caculate B
-    resolution = 0.1  # 0.1    # [m]
+    resolution = 0.02  # 0.1    # [m]
     disc_len = 0.2  # discretisation length for wire [m]
     # xmin ymin zmin [m]
     volume_corner1 = (1.2, -1.0, -1.0)

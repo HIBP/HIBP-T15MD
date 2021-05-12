@@ -1394,7 +1394,7 @@ def read_E(beamline, geom, dirname='elecfield'):
     return E, edges_dict
 
 
-def read_B(Btor, Ipl, PF_dict, dirname='magfield'):
+def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
     '''
     read magnetic field values from provided file (should be in
                                                    the same directory)
@@ -1441,22 +1441,26 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield'):
 #    cutoff = 10.0
 #    Babs = np.linalg.norm(B, axis=1)
 #    B[Babs > cutoff] = [np.nan, np.nan, np.nan]
-    # make an interpolation of B
+
+    # plot B stream
+    hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
+                          plot_sep=False)
+
     x = np.arange(volume_corner1[0], volume_corner2[0], resolution)
     y = np.arange(volume_corner1[1], volume_corner2[1], resolution)
     z = np.arange(volume_corner1[2], volume_corner2[2], resolution)
     Bx = B[:, 0].reshape(grid.shape[1:])
     By = B[:, 1].reshape(grid.shape[1:])
     Bz = B[:, 2].reshape(grid.shape[1:])
-    Bx_interp = RegularGridInterpolator((x, y, z), Bx)
-    By_interp = RegularGridInterpolator((x, y, z), By)
-    Bz_interp = RegularGridInterpolator((x, y, z), Bz)
-    print('Interpolants for magnetic field created')
-
-    hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
-                         plot_sep=False)
-
-    B_list = [Bx_interp, By_interp, Bz_interp]
+    if interp:
+        # make an interpolation of B
+        Bx_interp = RegularGridInterpolator((x, y, z), Bx)
+        By_interp = RegularGridInterpolator((x, y, z), By)
+        Bz_interp = RegularGridInterpolator((x, y, z), Bz)
+        print('Interpolants for magnetic field created')
+        B_list = [Bx_interp, By_interp, Bz_interp]
+    else:
+        B_list = [Bx, By, Bz]
 
     return B_list
 

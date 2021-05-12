@@ -135,7 +135,7 @@ def plot_2d(B, points, plane='xy', cutoff=2, n_contours=50):
 def plot_B_stream(B, volume_corner1, volume_corner2, resolution,
                   grid, color='r', dens=1.0, plot_sep=True):
 
-    fix, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
@@ -150,9 +150,9 @@ def plot_B_stream(B, volume_corner1, volume_corner2, resolution,
     Bz = B[:, 2].reshape(grid.shape[1:])
 
     # choose z position
-    z_cut = Bx.shape[2]//2  # z position of XY cut
+    z_cut = np.where(abs(z) < 0.001)[0][0]  # Bx.shape[2]//2
     # choose y position
-    y_cut = Bx.shape[1]//2  # z position of XZ cut
+    y_cut = np.where(abs(y) < 0.001)[0][0]  # Bx.shape[1]//2
 
     ax1.streamplot(x, y, Bx[:, :, z_cut].swapaxes(0, 1),
                    By[:, :, z_cut].swapaxes(0, 1), color=color, density=dens)
