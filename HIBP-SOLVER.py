@@ -22,11 +22,11 @@ if __name__ == '__main__':
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(140., 140. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(3., 6. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(-3., 30. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
 # %% Save traj list
 
-    # hb.save_traj_list(traj_list_passed, Btor, Ipl, r_aim)
+    hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
 
 # %% Optimize Secondary Beamline
     print('\n Secondary beamline optimization')
