@@ -13,7 +13,11 @@ import pylab
 import os
 from scipy.stats import gaussian_kde
 from itertools import cycle
-import alphashape
+try:
+    import alphashape
+except ModuleNotFoundError:
+    print('module alphashape NOT FOUND')
+    pass
 
 # %%
 '''

@@ -1,6 +1,7 @@
 import numpy as np
 import hibplib as hb
 import hibpplotlib as hbplot
+import define_geometry as defgeom
 import copy
 import time
 
@@ -14,6 +15,8 @@ if __name__ == '__main__':
     # toroidal field on the axis
     Btor = 1.0  # [T]
     Ipl = 1.0  # Plasma current [MA]
+
+    # probing ion charge and mass
     q = 1.60217662e-19  # electron charge [Co]
     m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
@@ -27,7 +30,7 @@ if __name__ == '__main__':
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 12.0  # [kV/m]
+    dUB2 = 10.0  # [kV/m]
 
     # B3 voltages
     UB3 = -20.0  # [kV]
@@ -41,49 +44,9 @@ if __name__ == '__main__':
     UA4 = 0.0  # [kV]
     dUA4 = 2.0  # [kV/m]
 
-# %% PRIMARY beamline geometry
-    geomT15 = hb.Geometry()
-
-    # plasma parameters
-    geomT15.R = 1.5  # tokamak major radius [m]
-    geomT15.r_plasma = 0.7  # plasma minor radius [m]
-    geomT15.elon = 1.8  # plasma elongation
-
-    # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 30.  # 20.
-    beta_prim = -10.
-    gamma_prim = 0.
-    geomT15.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
-
-    # coordinates of the injection port [m]
-    xpatr = 1.5 + 0.726
-    ypatr = 1.064
-    zpatr = 0.0
-    geomT15.r_dict['port'] = np.array([xpatr, ypatr, zpatr])
-
-    # distance from the injection port to the Alpha2 plates
-    dist_A2 = 0.35  # [m]
-    # distance from the injection port to the Beta2 plates
-    dist_B2 = dist_A2 + 0.3  # [m]
-    # distance from the injection port to the initial piont of the traj [m]
-    dist_r0 = dist_B2 + 0.2
-
-    # coordinates of the center of the ALPHA2 plates
-    geomT15.add_coords('A2', 'port', dist_A2, geomT15.prim_angles)
-
-    # coordinates of the center of the BETA2 plates
-    geomT15.add_coords('B2', 'port', dist_B2, geomT15.prim_angles)
-
-    # coordinates of the initial point of the trajectory [m]
-    geomT15.add_coords('r0', 'port', dist_r0, geomT15.prim_angles)
-    r0 = geomT15.r_dict['r0']
-
-# %% AIM position (BEFORE the Secondary beamline) [m]
-    xaim = 2.6  # 2.5
-    yaim = -0.25
-    zaim = 0.0
-    r_aim = np.array([xaim, yaim, zaim])
-    geomT15.r_dict['aim'] = r_aim
+# %% Define Geometry
+    geomT15 = defgeom.define_geometry(Btor, Ipl)
+    r0 = geomT15.r_dict['r0']  # trajectory starting point
 
     # angles of aim plane normal [deg]
     alpha_aim = 0.
@@ -91,77 +54,29 @@ if __name__ == '__main__':
     stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim,
                                   direction=(1, 1, 1))
 
-# %% SECONDARY beamline geometry
-    # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 15.
-    beta_sec = 20.
-    gamma_sec = -20.
-    geomT15.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
+# %% Load Magnetic Field
+    ''' Magnetic field part '''
+    pf_coils = hb.import_PFcoils('PFCoils.dat')
 
-    # distance from r_aim to the ALPHA3 center
-    dist_A3 = 0.3  # 1/2 of plates length
-    # distance from r_aim to the BETA3 center
-    dist_B3 = dist_A3 + 0.6
-    # from r_aim to A4
-    dist_A4 = dist_B3 + 0.5
-    # distance from r_aim the entrance slit of the analyzer
-    dist_s = dist_A4 + 0.5
-
-    # coordinates of the center of the ALPHA3 plates
-    geomT15.add_coords('A3', 'aim', dist_A3, geomT15.sec_angles)
-
-    # coordinates of the center of the BETA3 plates
-    geomT15.add_coords('B3', 'aim', dist_B3, geomT15.sec_angles)
-
-    # coordinates of the center of the ALPHA4 plates
-    geomT15.add_coords('A4', 'aim', dist_A4, geomT15.sec_angles)
-
-    # Coordinates of the CENTRAL slit
-    geomT15.add_coords('slit', 'aim', dist_s, geomT15.sec_angles)
-
-    # Coordinates of the ANALYZER
-    geomT15.add_coords('an', 'aim', dist_s, geomT15.sec_angles)
-
-# %% print info
-    print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
-    print('Primary beamline angles: ', geomT15.prim_angles[0:2])
-    print('Secondary beamline angles: ', geomT15.sec_angles[0:3])
-    print('r0 = ', np.round(geomT15.r_dict['r0'], 3))
-    print('r_aim = ', r_aim)
-    print('r_slit = ', np.round(geomT15.r_dict['slit'], 3))
-
-# %% GEOMETRY
-    # chamber entrance and exit coordinates
-    geomT15.chamb_ent = [(2.016, 1.069), (2.238, 1.193),
-                         (2.211, 0.937), (2.363, 1.04)]
-    geomT15.chamb_ext = [(2.39, -0.44), (2.39, -2.0),
-                         (2.39, 0.44), (2.39, 0.8)]
-
-    # Toroidal Field coil
-    geomT15.coil = np.loadtxt('TFCoil.dat') / 1000  # [m]
-    # Poloidal Field coils
-    geomT15.pf_coils = hb.import_PFcoils('PFCoils.dat')
-    # Camera contour
-    geomT15.camera = np.loadtxt('T15_vessel.txt') / 1000
-    # Separatrix contour
-    geomT15.sep = np.loadtxt('T15_sep.txt') / 1000
-    # First wall innner and outer contours
-    geomT15.in_fw = np.loadtxt('infw.txt') / 1000  # [m]
-    geomT15.out_fw = np.loadtxt('outfw.txt') / 1000  # [m]
+    PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
+    if 'B' not in locals():
+        dirname = 'magfield'
+        B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
 
 # %% Load Electric Field
     ''' Electric field part '''
     # load E for primary beamline
     E_prim, edges_prim = hb.read_E('prim', geomT15)
     geomT15.plates_edges.update(edges_prim)
-    print('Primary Beamline loaded')
+    print('\n Primary Beamline loaded')
 
     # load E for secondary beamline
     try:
         E_sec, edges_sec = hb.read_E('sec', geomT15)
         geomT15.plates_edges.update(edges_sec)
+        print('\n Secondary Beamline loaded')
     except FileNotFoundError:
-        print('Secondary Beamline NOT FOUND')
+        print('\n Secondary Beamline NOT FOUND')
         E_sec = []
 
     E = E_prim + E_sec
@@ -186,15 +101,6 @@ if __name__ == '__main__':
         G = 0.
         print('\nNO Analyzer')
 
-# %% Load Magnetic Field
-    ''' Magnetic field part '''
-    pf_coils = hb.import_PFcoils('PFCoils.dat')
-
-    PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
-    if 'B' not in locals():
-        dirname = 'magfield'
-        B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
-
 # %% Optimize Primary Beamline
     print('\n Primary beamline optimization')
     t1 = time.time()
@@ -208,7 +114,8 @@ if __name__ == '__main__':
             U_list = [UA2, UB2, UA3, UB3, UA4, Ebeam/(2*G)]
 
             # create new trajectory object
-            tr = hb.Traj(q, m_ion, Ebeam, r0, alpha_prim, beta_prim,
+            tr = hb.Traj(q, m_ion, Ebeam, r0,
+                         geomT15.prim_angles[0], geomT15.prim_angles[1],
                          U_list, dt)
 
             tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt,
