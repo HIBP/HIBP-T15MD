@@ -202,7 +202,7 @@ class Traj():
         if self.IntersectGeometry:
             print('Fan list is empty')
             self.Fan = list_sec
-            return
+            return 0
 
         # check eliptical radius of particle:
         # 1.5 m - major radius of a torus, elon - size along Y
@@ -771,6 +771,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 # if higher, continue steps along the primary
                 RV_old = RV_new
 
+        # change UB2 value proportional to dz
         if not tr.IsAimZ:
             dz = r_aim[2]-tr.RV_sec[-1, 2]
             print('UB2 OLD = {:.2f}, z_aim - z_curr = {:.4f} m'

@@ -194,12 +194,12 @@ if __name__ == '__main__':
         ion = 'Cs'
 
     # <sigma*v> for Ion+ + e -> Ion2+
-    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
         '+_e_' + ion + '2+.txt'
     sigmaV12_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
     # <sigma*v> for Ion2+ + e -> Ion3+
-    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
         '2+_e_' + ion + '3+.txt'
     sigmaV23_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 

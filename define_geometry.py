@@ -12,7 +12,7 @@ def define_geometry(Btor, Ipl):
 
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 30.  # 20.
+    alpha_prim = 20.  # 20.
     beta_prim = -10.
     gamma_prim = 0.
     geom.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])

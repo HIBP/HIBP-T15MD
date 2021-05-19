@@ -22,11 +22,11 @@ if __name__ == '__main__':
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(300., 320. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(-3., 30. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(-9., 33. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
@@ -120,14 +120,17 @@ if __name__ == '__main__':
 
             tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt,
                                 stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
+            UB2 = tr.U[1]
 
             if tr.IntersectGeometry:
                 print('NOT saved, primary intersected geometry')
                 continue
+            if tr.IntersectGeometrySec:
+                print('NOT saved, secondary intersected geometry')
+                continue
             if tr.IsAimXY and tr.IsAimZ:
                 traj_list.append(tr)
                 print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U[1]))
-                UB2 = tr.U[1]
             else:
                 print('NOT saved, sth wrong')
 
@@ -140,10 +143,10 @@ if __name__ == '__main__':
 # %% Additonal plots
 
     hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
-    hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
-                    plot_analyzer=False, plot_traj=True, plot_all=True)
+    # hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
+    #                 plot_analyzer=False, plot_traj=True, plot_all=False)
 
-    # hbplot.plot_scan(traj_list_passed, geomT15, 240., Btor, Ipl)
+    hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl)
     # hbplot.plot_scan(traj_list_passed, geomT15, 120., Btor, Ipl)
     # hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
     # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)

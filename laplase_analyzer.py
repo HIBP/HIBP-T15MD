@@ -45,7 +45,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'B2'
+    plts_name = 'A2'
     save_data = True
 
     # define voltages [Volts]
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     plts_center = np.array([0., 0., 0.])  # plates center
     # initially plates are parallel to XZ plane
     # define primary beamline angles
-    alpha_prim = 30.  # angle with X axis in XY plane (alpha)
+    alpha_prim = 20.  # angle with X axis in XY plane (alpha)
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles

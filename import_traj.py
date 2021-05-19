@@ -9,26 +9,21 @@ import copy
 if __name__ == '__main__':
     traj_list = []
 
-    # names = ['E100-120_UA20-21_alpha30_beta-10_x260y-25z0.pkl',
+    # grid with alpha=30
+    # names = ['E100-120_UA20-18_alpha30_beta-10_x260y-25z0.pkl',
     #          'E140-160_UA2-3-24_alpha30_beta-10_x260y-25z0.pkl',
-    #          'E180-200_UA2-3-24_alpha30_beta-10_x260y-25z0.pkl',
+    #          'E180-200_UA2-3-30_alpha30_beta-10_x260y-25z0.pkl',
     #          'E220-240_UA2-3-30_alpha30_beta-10_x260y-25z0.pkl',
     #          'E260-280_UA29-30_alpha30_beta-10_x260y-25z0.pkl',
-    #          'E300-300_UA227-30_alpha30_beta-10_x260y-25z0.pkl']
+    #          'E300-320_UA224-30_alpha30_beta-10_x260y-25z0.pkl']
 
-    names = ['E100-120_UA20-18_alpha30_beta-10_x260y-25z0.pkl',
-             'E140-160_UA2-3-24_alpha30_beta-10_x260y-25z0.pkl',
-             'E180-200_UA2-3-30_alpha30_beta-10_x260y-25z0.pkl',
-             'E220-240_UA2-3-30_alpha30_beta-10_x260y-25z0.pkl',
-             'E260-280_UA29-30_alpha30_beta-10_x260y-25z0.pkl',
-             'E300-320_UA224-30_alpha30_beta-10_x260y-25z0.pkl']
-
-    # names = ['E100-120_UA2-3-18_alpha20_beta-10_x260y-25z0.pkl',
-    #           'E140-160_UA2-6-18_alpha20_beta-10_x260y-25z0.pkl',
-    #           'E180-200_UA2-9-12_alpha20_beta-10_x260y-25z0.pkl',
-    #           'E220-240_UA2-9-15_alpha20_beta-10_x260y-25z0.pkl',
-    #           'E260-280_UA23-30_alpha20_beta-10_x260y-25z0.pkl',
-    #           'E300-320_UA215-30_alpha20_beta-10_x260y-25z0.pkl']
+    # grid with alpha=20
+    names = ['E100-120_UA2-3-18_alpha20_beta-10_x260y-25z0.pkl',
+             'E140-160_UA2-6-21_alpha20_beta-10_x260y-25z0.pkl',
+             'E180-200_UA2-9-18_alpha20_beta-10_x260y-25z0.pkl',
+             'E220-240_UA2-9-15_alpha20_beta-10_x260y-25z0.pkl',
+             'E260-280_UA23-18_alpha20_beta-10_x260y-25z0.pkl',
+             'E300-320_UA212-21_alpha20_beta-10_x260y-25z0.pkl']
 
     for name in names:
         traj_list += hb.read_traj_list(name, dirname='output/B1_I1')
