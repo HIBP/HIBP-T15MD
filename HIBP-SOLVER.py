@@ -22,15 +22,15 @@ if __name__ == '__main__':
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(300., 320. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(120., 120. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(-9., 33. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(12., 12. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 10.0  # [kV/m]
+    dUB2 = 4.0  # [kV/m]
 
     # B3 voltages
     UB3 = -20.0  # [kV]
@@ -140,6 +140,10 @@ if __name__ == '__main__':
 # %%
     traj_list_passed = copy.deepcopy(traj_list)
 
+# %% Save traj list
+
+    # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
+
 # %% Additonal plots
 
     hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
@@ -151,18 +155,16 @@ if __name__ == '__main__':
     # hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
     # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
 
-# %% Save traj list
-
-    hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
-
 # %% Optimize Secondary Beamline
     print('\n Secondary beamline optimization')
     t1 = time.time()
     traj_list_a3b3 = []
     for tr in copy.deepcopy(traj_list_passed):
-        tr = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3, E, B, dt,
-                              target='slit', eps_xy=1e-3, eps_z=1e-3)
-        if not tr.IntersectGeometrySec:
+        tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
+                                         E, B, dt, target='slit',
+                                         UA3_max=50., UB3_max=50.,
+                                         eps_xy=1e-3, eps_z=1e-3)
+        if not tr.IntersectGeometrySec and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
             UA3 = tr.U[2]
@@ -175,11 +177,11 @@ if __name__ == '__main__':
 
 # %%
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
-                     full_primary=False, plot_analyzer=True,
-                     subplots_vertical=True, scale=3.5)
+                      full_primary=False, plot_analyzer=True,
+                      subplots_vertical=True, scale=3.5)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
-                     full_primary=False, plot_analyzer=False,
-                     plot_det_line=False, subplots_vertical=True, scale=5)
+                      full_primary=False, plot_analyzer=False,
+                      plot_det_line=False, subplots_vertical=True, scale=5)
 
 # %% Pass trajectory to the Analyzer
 #     print('\n Optimizing entrance angle to Analyzer with A4')

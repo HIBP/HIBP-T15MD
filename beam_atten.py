@@ -214,6 +214,7 @@ if __name__ == '__main__':
     # %%
     Itot = np.zeros([0, 12])
     for tr in tr_list:
+        pass
         I_integrated = integrate_traj(tr, ne0, Te0, sigmaEff12_e_interp,
                                       sigmaEff23_e_interp)
         Itot = np.vstack([Itot, I_integrated[np.newaxis, :]])
@@ -304,8 +305,7 @@ if __name__ == '__main__':
                      norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
                      c=c,
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
+                     marker=marker_E)
     plt.colorbar(sc)
 
     # %% plot grid of angles
@@ -328,8 +328,7 @@ if __name__ == '__main__':
                      linestyle=linestyle_E,
                      c=angles[:, 0],
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
+                     marker=marker_E)
     plt.colorbar(sc, ax=ax1, label=r'$\alpha (deg)$')
 
     # plot grid with beta coloring
@@ -337,8 +336,7 @@ if __name__ == '__main__':
                      linestyle=linestyle_E,
                      c=angles[:, 1],
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
+                     marker=marker_E)
     plt.colorbar(sc, ax=ax2, label=r'$\beta (deg)$')
 
     # %% plot ne and Te profiles

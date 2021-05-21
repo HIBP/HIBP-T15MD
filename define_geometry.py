@@ -12,7 +12,7 @@ def define_geometry(Btor, Ipl):
 
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 20.  # 20.
+    alpha_prim = 30.  # 20.
     beta_prim = -10.
     gamma_prim = 0.
     geom.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
@@ -41,7 +41,7 @@ def define_geometry(Btor, Ipl):
 
     # AIM position (BEFORE the Secondary beamline) [m]
     xaim = 2.6  # 2.5
-    yaim = -0.25
+    yaim = -0.25  # -0.15
     zaim = 0.0
     r_aim = np.array([xaim, yaim, zaim])
     geom.r_dict['aim'] = r_aim

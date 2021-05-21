@@ -707,6 +707,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
         twisted_fan = False
 
         if are_higher.shape[0] == 0:
+            print('all secondaries are lower than aim!')
             attempts_high += 1
             n = int(are_lower[are_lower.shape[0]//2])
             if attempts_high > 5:
@@ -715,6 +716,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 # return tr
                 break
         elif are_lower.shape[0] == 0:
+            print('all secondaries are higher than aim!')
             attempts_low += 1
             n = int(are_higher[are_higher.shape[0]//2])
             if attempts_low > 5:
@@ -730,7 +732,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 twisted_fan = True
                 n = int(are_lower[-1])
             else:
-                n = int(are_higher[-1])  # find one which is higher
+                n = int(are_higher[-1])  # find the last one which is higher
         RV_old = np.array([tr.Fan[n][0]])
 
         # find secondary, which goes directly into r_aim
@@ -771,6 +773,9 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
                 # if higher, continue steps along the primary
                 RV_old = RV_new
 
+        print('IsAimXY = ', tr.IsAimXY)
+        print('IsAimZ = ', tr.IsAimZ)
+
         # change UB2 value proportional to dz
         if not tr.IsAimZ:
             dz = r_aim[2]-tr.RV_sec[-1, 2]
@@ -792,7 +797,8 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
 
 # %%
 def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
-                  E, B, dt, target='slit', eps_xy=1e-3, eps_z=1e-3):
+                  E, B, dt, target='slit', UA3_max=50., UB3_max=50.,
+                  eps_xy=1e-3, eps_z=1e-3):
     ''' get voltages on A3 and B3 plates to get into rs
     '''
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
@@ -814,6 +820,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     tr.IsAimZ = False
     RV0 = np.array([tr.RV_sec[0]])
 
+    vltg_fail = False  # flag to track voltage failure
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
         tr.U[2:4] = [UA3, UB3]
@@ -831,12 +838,14 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
         print('UA3 NEW = {:.2f} kV'.format(UA3))
         n_stepsA3 += 1
 
-        if abs(UA3) > 200.:
+        if abs(UA3) > UA3_max:
             print('ALPHA3 failed, voltage too high')
-            return tr
+            vltg_fail = True
+            return tr, vltg_fail
         if n_stepsA3 > 100:
             print('ALPHA3 failed, too many steps')
-            return tr
+            vltg_fail = True
+            return tr, vltg_fail
 
         # dz = rs[2] - tr.RV_sec[-1, 2]
         # print('\n UB3 OLD = {:.2f} kV, dZ = {:.4f} m'.format(UB3, dz))
@@ -866,19 +875,21 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
 
                 UB3 = UB3 - dUB3*dz
                 n_stepsZ += 1
-                if abs(UB3) > 190.:
+                if abs(UB3) > UB3_max:
                     print('BETA3 failed, voltage too high')
-                    return tr
+                    vltg_fail = True
+                    return tr, vltg_fail
                 if n_stepsZ > 100:
                     print('BETA3 failed, too many steps')
-                    return tr
+                    vltg_fail = True
+                    return tr, vltg_fail
                 # print('UB3 NEW = {:.2f} kV'.format(UB3))
             n_stepsA3 = 0
             print('n_stepsZ = ', n_stepsZ)
             dz = rs[2] - tr.RV_sec[-1, 2]
             print('UB3 NEW = {:.2f} kV, dZ = {:.4f} m'.format(UB3, dz))
 
-    return tr
+    return tr, vltg_fail
 
 
 # %%

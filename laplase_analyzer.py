@@ -45,7 +45,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'A2'
+    plts_name = 'A4'
     save_data = True
 
     # define voltages [Volts]
@@ -60,9 +60,9 @@ if __name__ == '__main__':
     beta_prim = -10.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
-    alpha_sec = 15.  # angle with X axis in XY plane (alpha)
+    alpha_sec = 40.  # angle with X axis in XY plane (alpha)
     beta_sec = 20.  # angle with X axis in XZ plane (beta)
-    gamma_sec = 0.  # rotation around the X axis (gamma)
+    gamma_sec = -20. # 0.  # rotation around the X axis (gamma)
 
     # convert degrees to radians
     drad = np.pi/180.
@@ -92,24 +92,28 @@ if __name__ == '__main__':
         beamline = 'sec'
         length = 0.6  # along X [m]
         width = 0.2  # along Z [m]
-        thick = 0.02  # [m]
-        gap = 0.2  # distance between plates along Y [m]
+        thick = 0.01  # [m]
+        gap = 0.1  # distance between plates along Y [m]
         alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec
+        # for the higher beamline
+        if alpha_sec > 30.:
+            Uupper_plate = 1e3
+            Ulower_plate = 0.
 
     elif plts_name == 'B3':
         beamline = 'sec'
         length = 0.4  # along X [m]
         width = 0.2  # along Z [m]
-        thick = 0.02  # [m]
-        gap = 0.2  # distance between plates along Y [m]
+        thick = 0.01  # [m]
+        gap = 0.1  # distance between plates along Y [m]
         alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec-90.
 
     elif plts_name == 'A4':
         beamline = 'sec'
         length = 0.4  # along X [m]
         width = 0.2  # along Z [m]
-        thick = 0.02  # [m]
-        gap = 0.2  # distance between plates along Y [m]
+        thick = 0.01  # [m]
+        gap = 0.1  # distance between plates along Y [m]
         alpha, beta, gamma = alpha_sec, beta_sec, gamma_sec
 
     elif plts_name == 'an':
