@@ -52,8 +52,9 @@ class Traj():
         self.dt2 = dt
         self.IsAimXY = False
         self.IsAimZ = False
-        self.IntersectGeometry = False
-        self.IntersectGeometrySec = False
+        self.IntersectGeometry = {'A2': False, 'B2': False, 'chamb': False}
+        self.IntersectGeometrySec = {'A3': False, 'B3': False, 'A4': False,
+                                     'chamb': False}
         self.B_out_of_bounds = False
         # multislit:
         self.fan_to_slits = []
@@ -65,7 +66,9 @@ class Traj():
             geom - Geometry object
         '''
         print('\n Passing primary trajectory')
-        self.IntersectGeometry = False
+        # reset intersection flags
+        for key in self.IntersectGeometry.keys():
+            self.IntersectGeometry[key] = False
         t = 0.
         dt = self.dt1
         RV_old = self.RV0  # initial position
@@ -92,14 +95,14 @@ class Traj():
 
             if geom.check_chamb_ent_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
                 print('Primary intersected chamber entrance')
-                self.IntersectGeometry = True
+                self.IntersectGeometry['chamb'] = True
                 break
 
             plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
                                                                RV_new[0, 0:3])
             if plts_flag:
                 print('Primary intersected ' + plts_name + ' plates')
-                self.IntersectGeometry = True
+                self.IntersectGeometry[plts_name] = True
                 break
 
             RV_old = RV_new
@@ -119,9 +122,11 @@ class Traj():
         # print('Passing secondary trajectory')
         self.IsAimXY = False
         self.IsAimZ = False
-        self.IntersectGeometrySec = False
         self.B_out_of_bounds = False
-        t = 0
+        # reset intersection flags
+        for key in self.IntersectGeometrySec.keys():
+            self.IntersectGeometrySec[key] = False
+        t = 0.
         dt = self.dt2
         RV_old = RV0  # initial position
         RV = RV0  # array to collect all [r,V]
@@ -146,13 +151,13 @@ class Traj():
 
             if geom.check_chamb_ext_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
                 # print('Secondary intersected chamber exit')
-                self.IntersectGeometrySec = True
+                self.IntersectGeometrySec['chamb'] = True
 
             plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
                                                                RV_new[0, 0:3])
             if plts_flag:
                 print('Secondary intersected ' + plts_name + ' plates')
-                self.IntersectGeometrySec = True
+                self.IntersectGeometrySec[plts_name] = True
 
             # find last point of the secondary trajectory
             if (RV_new[0, 0] > 2.5) and (RV_new[0, 1] < 1.5):
@@ -199,7 +204,7 @@ class Traj():
         # create a list fro secondary trajectories:
         list_sec = []
         # check intersection of primary trajectory:
-        if self.IntersectGeometry:
+        if True in self.IntersectGeometry.values():
             print('Fan list is empty')
             self.Fan = list_sec
             return 0
@@ -218,7 +223,7 @@ class Traj():
             self.pass_sec(RV02, r_aim, E_interp, B_interp, geom,
                           stop_plane_n=stop_plane_n,
                           eps_xy=eps_xy, eps_z=eps_z)
-            if (no_intersect and self.IntersectGeometrySec) or \
+            if (no_intersect and True in self.IntersectGeometrySec.values()) or \
                (no_out_of_bounds and self.B_out_of_bounds):
                 continue
             list_sec.append(self.RV_sec)
@@ -688,7 +693,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
         tr.pass_fan(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
                     eps_xy=eps_xy, eps_z=eps_z,
                     no_intersect=True, no_out_of_bounds=True)
-        if tr.IntersectGeometry:
+        if True in tr.IntersectGeometry.values():
             break
         if len(tr.Fan) == 0:
             print('NO secondary trajectories')
@@ -696,7 +701,9 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
         # reset flags in order to let the algorithm work properly
         tr.IsAimXY = False
         tr.IsAimZ = False
-        tr.IntersectGeometrySec = False
+        # reset intersection flags
+        for key in tr.IntersectGeometrySec.keys():
+            tr.IntersectGeometrySec[key] = False
 
         # find which secondaries are higher/lower than r_aim
         # sign = -1 means higher, 1 means lower
@@ -779,7 +786,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
         # change UB2 value proportional to dz
         if not tr.IsAimZ:
             dz = r_aim[2]-tr.RV_sec[-1, 2]
-            print('UB2 OLD = {:.2f}, z_aim - z_curr = {:.4f} m'
+            print('UB2 OLD = {:.2f}, z_aim - z = {:.4f} m'
                   .format(UB2, dz))
             UB2 = UB2 - dUB2*dz
             print('UB2 NEW = {:.2f}'.format(UB2))
@@ -821,15 +828,8 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     RV0 = np.array([tr.RV_sec[0]])
 
     vltg_fail = False  # flag to track voltage failure
-    n_steps = 0
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
-        n_steps += 1
-        if n_steps > 50:
-            print('sth wrong, too many steps')
-            vltg_fail = True
-            return tr, vltg_fail
-
         tr.U[2:4] = [UA3, UB3]
         tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
                     tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)
@@ -857,6 +857,10 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
         # dz = rs[2] - tr.RV_sec[-1, 2]
         # print('\n UB3 OLD = {:.2f} kV, dZ = {:.4f} m'.format(UB3, dz))
         if abs(drXY) < 0.01:
+            if tr.IntersectGeometrySec['A3']:
+                print('BAD A3!')
+                vltg_fail = True
+                return tr, vltg_fail
             n_stepsZ = 0
             while not tr.IsAimZ:
                 print('pushing Z direction')
@@ -1019,7 +1023,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
         i_steps += 1
-        if not (tr.IntersectGeometrySec or tr.B_out_of_bounds):
+        if not (True in tr.IntersectGeometrySec.values() or tr.B_out_of_bounds):
             fan_list.append(tr.RV_sec)
     print('\nPrecise fan calculated')
 

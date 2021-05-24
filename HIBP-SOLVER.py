@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(0., 0. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(30., 30. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
@@ -122,10 +122,10 @@ if __name__ == '__main__':
                                 stop_plane_n, eps_xy=1e-3, eps_z=1e-3)
             UB2 = tr.U[1]
 
-            if tr.IntersectGeometry:
+            if True in tr.IntersectGeometry.values():
                 print('NOT saved, primary intersected geometry')
                 continue
-            if tr.IntersectGeometrySec:
+            if True in tr.IntersectGeometrySec.values():
                 print('NOT saved, secondary intersected geometry')
                 continue
             if tr.IsAimXY and tr.IsAimZ:
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                                          E, B, dt, target='slit',
                                          UA3_max=40., UB3_max=40.,
                                          eps_xy=1e-3, eps_z=1e-3)
-        if not tr.IntersectGeometrySec and not vltg_fail:
+        if not (True in tr.IntersectGeometrySec.values()) and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
             # UA3 = tr.U[2]
