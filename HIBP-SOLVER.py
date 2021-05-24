@@ -22,23 +22,23 @@ if __name__ == '__main__':
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(120., 120. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(12., 12. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(0., 0. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
-    dUB2 = 4.0  # [kV/m]
+    dUB2 = 10.0  # [kV/m]
 
     # B3 voltages
-    UB3 = -20.0  # [kV]
-    dUB3 = 20.0  # [kV/m]
+    UB3 = 0.0  # [kV]
+    dUB3 = 10.  # 20.0  # [kV/m]
 
     # A3 voltages
-    UA3 = 10.0  # [kV]
-    dUA3 = 5.0  # [kV/m]
+    UA3 = 0.0  # [kV]
+    dUA3 = 7.0  # [kV/m]
 
     # A4 voltages
     UA4 = 0.0  # [kV]
@@ -98,7 +98,7 @@ if __name__ == '__main__':
         print('\nAnalyzer with {} slits added to Geometry'.format(n_slits))
         print('G = {}\n'.format(G))
     else:
-        G = 0.
+        G = 1.
         print('\nNO Analyzer')
 
 # %% Optimize Primary Beamline
@@ -144,7 +144,7 @@ if __name__ == '__main__':
 
     # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
 
-# %% Additonal plots
+# %% Additional plots
 
     hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl, marker_A2='')
     # hbplot.plot_fan(traj_list_passed, geomT15, 240., UA2, Btor, Ipl,
@@ -162,26 +162,29 @@ if __name__ == '__main__':
     for tr in copy.deepcopy(traj_list_passed):
         tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
                                          E, B, dt, target='slit',
-                                         UA3_max=50., UB3_max=50.,
+                                         UA3_max=40., UB3_max=40.,
                                          eps_xy=1e-3, eps_z=1e-3)
         if not tr.IntersectGeometrySec and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
-            UA3 = tr.U[2]
-            UB3 = tr.U[3]
+            # UA3 = tr.U[2]
+            # UB3 = tr.U[3]
         else:
             print('\n NOT saved')
 
     t2 = time.time()
     print("\n A3 & B3 voltages optimized, t = {:.1f} s\n".format(t2-t1))
 
-# %%
+# %% Additional plots
+    hbplot.plot_grid_a3b3(traj_list_a3b3, geomT15, Btor, Ipl,
+                          linestyle_A2='--', linestyle_E='-',
+                          marker_E='p')
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
-                      full_primary=False, plot_analyzer=True,
-                      subplots_vertical=True, scale=3.5)
+                     full_primary=False, plot_analyzer=True,
+                     subplots_vertical=True, scale=3.5)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
-                      full_primary=False, plot_analyzer=False,
-                      plot_det_line=False, subplots_vertical=True, scale=5)
+                     full_primary=False, plot_analyzer=False,
+                     plot_det_line=False, subplots_vertical=True, scale=5)
 
 # %% Pass trajectory to the Analyzer
 #     print('\n Optimizing entrance angle to Analyzer with A4')
@@ -207,4 +210,4 @@ if __name__ == '__main__':
 
 # %% Save list of trajectories
 
-    # hb.save_traj_list(traj_list_passed, Btor, Ipl, r_aim)
+    # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])

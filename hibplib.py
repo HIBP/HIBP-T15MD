@@ -821,8 +821,15 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     RV0 = np.array([tr.RV_sec[0]])
 
     vltg_fail = False  # flag to track voltage failure
+    n_steps = 0
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
+        n_steps += 1
+        if n_steps > 50:
+            print('sth wrong, too many steps')
+            vltg_fail = True
+            return tr, vltg_fail
+
         tr.U[2:4] = [UA3, UB3]
         tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
                     tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)

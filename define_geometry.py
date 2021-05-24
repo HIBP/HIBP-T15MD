@@ -41,22 +41,22 @@ def define_geometry(Btor, Ipl):
 
     # AIM position (BEFORE the Secondary beamline) [m]
     xaim = 2.6  # 2.5
-    yaim = -0.25  # -0.15
+    yaim = -0.15  # -0.25
     zaim = 0.0
     r_aim = np.array([xaim, yaim, zaim])
     geom.r_dict['aim'] = r_aim
 
     # SECONDARY beamline geometry
     # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 15.
+    alpha_sec = 40.  # 5.
     beta_sec = 20.
     gamma_sec = -20.
     geom.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
 
     # distance from r_aim to the ALPHA3 center
-    dist_A3 = 0.3  # 1/2 of plates length
+    dist_A3 = 0.2  # 0.3  # 1/2 of plates length
     # distance from r_aim to the BETA3 center
-    dist_B3 = dist_A3 + 0.6
+    dist_B3 = dist_A3 + 0.5  # + 0.6
     # from r_aim to A4
     dist_A4 = dist_B3 + 0.5
     # distance from r_aim the entrance slit of the analyzer

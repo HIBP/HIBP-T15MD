@@ -740,8 +740,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
 # %%
 def plot_grid(traj_list, geom, Btor, Ipl,
               linestyle_A2='--', linestyle_E='-',
-              marker_A2='*', marker_E='p',
-              traj_color='tab:gray'):
+              marker_A2='*', marker_E='p'):
     '''
     plot detector grid in 2 planes: xy, xz
     :param traj_list: list of trajectories
@@ -828,6 +827,75 @@ def plot_grid(traj_list, geom, Btor, Ipl,
     ax1.legend()
 
 #    ax1.set(xlim=(0.9, 4.28), ylim=(-1, 1.5), autoscale_on=False)
+
+
+#%%
+def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
+                  linestyle_A2='--', linestyle_E='-',
+                  marker_E='p'):
+    '''plot detector grids colored as A3 and B3 voltages'''
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
+    # plot geometry
+    geom.plot_geom(ax1, axes='XY', plot_sep=True)
+    geom.plot_geom(ax2, axes='XY', plot_sep=True)
+
+    set_axes_param(ax1, 'X (m)', 'Y (m)')
+    set_axes_param(ax2, 'X (m)', 'Y (m)')
+
+    # get A2, A3, B3 and E lists
+    Elist = np.array([tr.Ebeam for tr in traj_list])
+    Elist = np.unique(Elist)
+    A2list = np.array([tr.U[0] for tr in traj_list])
+    A2list = np.unique(A2list)
+
+    A3B3list = np.full((len(traj_list), 2), np.nan)
+    k = -1
+    for tr in traj_list:
+        k += 1
+        A3B3list[k, 0] = tr.U[2]  # choose A3
+        A3B3list[k, 1] = tr.U[3]  # choose B3
+
+    N_A2 = A2list.shape[0]
+    N_E = Elist.shape[0]
+    A2_grid = np.full((N_E, 3, N_A2), np.nan)
+
+    # find UA2 max and min
+    UA2_max = np.amax(np.array(A2list))
+    UA2_min = np.amin(np.array(A2list))
+    # set title
+    ax1.set_title('Eb = [{}, {}] keV, UA2 = [{}, {}] kV,'
+                  ' Btor = {} T, Ipl = {} MA'
+                  .format(traj_list[0].Ebeam, traj_list[-1].Ebeam, UA2_min,
+                          UA2_max, Btor, Ipl))
+
+    E_grid = np.full((len(traj_list), 3), np.nan)
+    k = -1
+    # make a grid of constant E
+    for i_E in range(0, N_E, 1):
+        for tr in traj_list:
+            if abs(tr.Ebeam - Elist[i_E]) < 0.1:
+                k += 1
+                # take the 1-st point of secondary trajectory
+                x = tr.RV_sec[0, 0]
+                y = tr.RV_sec[0, 1]
+                z = tr.RV_sec[0, 2]
+                E_grid[k, :] = [x, y, z]
+
+    # plot grid with A3 coloring
+    sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
+                     linestyle=linestyle_E,
+                     c=A3B3list[:, 0],
+                     cmap='jet',
+                     marker=marker_E)
+    plt.colorbar(sc, ax=ax1, label='A3, kV')
+
+    # plot grid with beta coloring
+    sc = ax2.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
+                     linestyle=linestyle_E,
+                     c=A3B3list[:, 1],
+                     cmap='jet',
+                     marker=marker_E)
+    plt.colorbar(sc, ax=ax2, label='B3, kV')
 
 
 # %%
