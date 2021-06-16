@@ -24,7 +24,7 @@ class Traj():
         r0 - initial position [m]
         alpha - injection angle in XY plane [rad]
         beta - injection angle in XZ plane [rad]
-        U - list of voltages in [kV] [A2 B2 A3 B3]
+        U - dict of voltages in [kV] keys=[A1 B1 A2 B2 A3 B3 an]
         dt - timestep for RK algorithm [s]
         '''
         self.q = q
@@ -79,7 +79,7 @@ class Traj():
         while t <= tmax:
             r = RV_old[0, :3]
             # Electric field:
-            E_local = return_E(r, E_interp, self.U)
+            E_local = return_E(r, E_interp, self.U, geom)
             # Magnetic field:
             try:
                 B_local = return_B(r, B_interp)
@@ -93,8 +93,8 @@ class Traj():
 
             tag_column = np.hstack((tag_column, 10))
 
-            if geom.check_chamb_ent_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
-                print('Primary intersected chamber entrance')
+            if geom.check_chamb_intersect('prim', RV_old[0, 0:3], RV_new[0, 0:3]):
+                print('Primary intersected chamber')
                 self.IntersectGeometry['chamb'] = True
                 break
 
@@ -136,7 +136,7 @@ class Traj():
         while t <= tmax:  # to witness curls initiate tmax as 1 sec
             r = RV_old[0, :3]
             # Electric field:
-            E_local = return_E(r, E_interp, self.U)
+            E_local = return_E(r, E_interp, self.U, geom)
             # Magnetic field:
             try:
                 B_local = return_B(r, B_interp)
@@ -149,7 +149,7 @@ class Traj():
             # runge-kutta step:
             RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
 
-            if geom.check_chamb_ext_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
+            if geom.check_chamb_intersect('sec', RV_old[0, 0:3], RV_new[0, 0:3]):
                 # print('Secondary intersected chamber exit')
                 self.IntersectGeometrySec['chamb'] = True
 
@@ -305,8 +305,7 @@ class Geometry():
         # array for slit polygon:
         self.slits_spot = np.array([])
         # arrays for primary and secondary beamline angles:
-        self.prim_angles = np.array([])
-        self.sec_angles = np.array([])
+        self.angles = dict()
         # array for Analyzer parameters
         self.an_params = np.array([])
         # plasma geometry
@@ -314,33 +313,35 @@ class Geometry():
         self.r_plasma = 0
         self.elon = 0
 
-    def check_chamb_ent_intersect(self, point1, point2):
-        ''' check the intersection between segment 1->2 and chamber entrance
+    def check_chamb_intersect(self, beamline, point1, point2):
+        ''' check intersection between segment 1->2 and chamber
         '''
-        if len(self.chamb_ent) == 0:
-            return False
-        if (segm_intersect(point1[0:2], point2[0:2],
-                           self.chamb_ent[0], self.chamb_ent[1])) or \
-            (segm_intersect(point1[0:2], point2[0:2],
-                            self.chamb_ent[2], self.chamb_ent[3])):
-            return True
-        else:
-            return False
-
-    def check_chamb_ext_intersect(self, point1, point2):
-        ''' check the intersection between segment 1->2 and chamber exit
-        '''
-        if len(self.chamb_ext) == 0:
-            return False
-        if (segm_intersect(point1[0:2], point2[0:2],
-                           self.chamb_ext[0], self.chamb_ext[1])) or \
-            (segm_intersect(point1[0:2], point2[0:2],
-                            self.chamb_ext[2], self.chamb_ext[3])):
-            return True
-        else:
-            return False
+        intersect_flag = False
+        # do not check intersection when particle is far from chamber
+        if (point1[0] > 2.5 and point2[1] > 1.5) or \
+           (point1[0] < 2.0 and point2[1] < 0.8):
+                return intersect_flag
+        if beamline == 'prim':
+            # check intersection with chamber entrance and chamber at HFS
+            # if len(self.chamb_ent) == 0: return False
+            for i in np.arange(0, len(self.chamb_ent), 2):
+                intersect_flag = intersect_flag or \
+                    segm_intersect(point1[0:2], point2[0:2],
+                                    self.chamb_ent[i], self.chamb_ent[i+1])
+        elif beamline == 'sec':
+            # check intersection with chamber exit
+            # if len(self.chamb_ext) == 0: return False
+            for i in np.arange(0, len(self.chamb_ext), 2):
+                intersect_flag = intersect_flag or \
+                    segm_intersect(point1[0:2], point2[0:2],
+                                    self.chamb_ext[i], self.chamb_ext[i+1])
+        return intersect_flag
 
     def check_plates_intersect(self, point1, point2):
+    # do not check intersection when particle is outside beamlines
+        if point2[0] < self.r_dict['aim'][0]-0.05 and \
+            point1[1] < self.r_dict['port'][1]:
+            return False, 'none'
         segment_coords = np.array([point1, point2])
         for key in self.plates_edges.keys():
             if key == 'an':
@@ -377,11 +378,11 @@ class Geometry():
         slit_gamma - angle of ratation around X [deg]
         '''
         # angles of the slits plane normal
-        angles = copy.deepcopy(self.sec_angles)
+        slit_angles = copy.deepcopy(self.angles['an'])
         # coords of center of the central slit
         rs = self.r_dict['slit']
 
-        r_slits, slit_plane_n, slits_spot = define_slits(rs, angles, angles,
+        r_slits, slit_plane_n, slits_spot = define_slits(rs, slit_angles,
                                                          n_slits, slit_dist,
                                                          slit_w, slit_l)
         self.slits_edges = r_slits
@@ -389,18 +390,15 @@ class Geometry():
         self.slits_spot = slits_spot
 
     def add_detector(self, n_det, det_dist, det_w, det_l):
-        ''' add etector to geometry
+        ''' add detector to geometry
         '''
         if self.an_params.shape[0] == 0:
             print('Analyzer not defined!')
             return
         # angles of the beamline
-        beamline_angles = copy.deepcopy(self.sec_angles)
+        beamline_angles = copy.deepcopy(self.angles['an'])
         # set the beamline axis
         axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
-        # angles of the detector normal
-        angles = copy.deepcopy(self.sec_angles)
-        angles[0] = -angles[0]
 
         # analyzer parameters
         XD, YD1, YD2 = self.an_params[5:]
@@ -414,18 +412,20 @@ class Geometry():
         a, b = calc_angles(rd)
         # add coords of the center of the central detector
         self.add_coords('det', 'slit', dist, [a, b])
-
+        # angles of the detector normal
+        det_angles = copy.deepcopy(self.angles['an'])
+        det_angles[0] = det_angles[0] - 2*theta_an
         r_det, det_plane_n, det_spot = define_slits(self.r_dict['det'],
-                                                    beamline_angles,
-                                                    angles, n_det,
-                                                    det_dist, det_w, det_l)
+                                                    det_angles,
+                                                    n_det, det_dist,
+                                                    det_w, det_l)
         self.det_edges = r_det
         self.det_plane_n = det_plane_n
         self.det_spot = det_spot
 
     def plot_geom(self, ax, axes='XY', plot_sep=True, plot_aim=True):
         '''
-        plot tokamak, plates, aim dot and central slit dot
+        plot camera, plates, aim dot and central slit dot
         '''
         # plot toroidal and poloidal field coils, camera and
         # separatrix in XY plane
@@ -524,12 +524,7 @@ def plot_slits(r_slits, spot, ax, axes='XY', n_slit='all', color='g'):
 
 
 # %%
-def define_slits(r0, beamline_angles, slit_angles,
-                 n_slits, slit_dist, slit_w, slit_l):
-    # set the beamline axis
-    axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
-    # set angles of the normal to the slit plane
-    slit_alpha, slit_beta, slit_gamma = slit_angles
+def define_slits(r0, slit_angles, n_slits, slit_dist, slit_w, slit_l):
     n_slits = int(n_slits)
     # calculate slits coordinates:
     r_slits = np.zeros([n_slits, 5, 3])
@@ -544,12 +539,7 @@ def define_slits(r0, beamline_angles, slit_angles,
         r_slits[i_slit, 4, :] = [0., y0 + slit_w/2, -slit_l/2]
         # rotate and shift to slit position:
         for j in range(5):
-            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                           axis=(0, 0, 1), deg=slit_alpha)
-            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                           axis=(0, 1, 0), deg=slit_beta)
-            r_slits[i_slit, j, :] = rotate(r_slits[i_slit, j, :],
-                                           axis=axis, deg=slit_gamma)
+            r_slits[i_slit, j, :] = rotate3(r_slits[i_slit, j, :], slit_angles)
             r_slits[i_slit, j, :] += r0
 
     # calculate normal to slit plane:
@@ -565,6 +555,7 @@ def define_slits(r0, beamline_angles, slit_angles,
 
 
 # %%
+@numba.jit()
 def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
     ''' calculate vector based on its length and angles
     '''
@@ -576,6 +567,7 @@ def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
 
 
 # %%
+@numba.jit()
 def calc_angles(vector):
     ''' calculate alpha and beta angles based on vector coords
     '''
@@ -677,18 +669,19 @@ def runge_kutt(k, RV, dt, E, B):
 
 
 # %%
-def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
-                stop_plane_n, eps_xy=1e-3, eps_z=1e-3):
+def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
+                optimize=True, eps_xy=1e-3, eps_z=1e-3):
     ''' get voltages on B2 plates and choose secondary trajectory
     which goes into r_aim
     '''
-    r_aim = geom.r_dict['aim']
+    print('Target: ' + target)
+    r_aim = geom.r_dict[target]
     k = tr.q/tr.m
     attempts_high = 0
     attempts_low = 0
     attempts_opt = 0
     while True:
-        tr.U[1], tr.dt1, tr.dt2 = UB2, dt, dt
+        tr.U['B2'], tr.dt1, tr.dt2 = UB2, dt, dt
         # pass fan of trajectories
         tr.pass_fan(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
                     eps_xy=eps_xy, eps_z=eps_z,
@@ -744,7 +737,6 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
 
         # find secondary, which goes directly into r_aim
         tr.dt1 = tr.dt1/2.
-
         while True:
             # make a small step along primary trajectory
             r = RV_old[0, :3]
@@ -758,7 +750,6 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
             # pass new secondary trajectory
             tr.pass_sec(RV_new, r_aim, E, B, geom,
                         stop_plane_n=stop_plane_n, eps_xy=eps_xy, eps_z=eps_z)
-
             # check XY flag
             if tr.IsAimXY:
                 # insert RV_new into primary traj
@@ -783,22 +774,24 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt,
         print('IsAimXY = ', tr.IsAimXY)
         print('IsAimZ = ', tr.IsAimZ)
 
-        # change UB2 value proportional to dz
-        if not tr.IsAimZ:
-            dz = r_aim[2]-tr.RV_sec[-1, 2]
-            print('UB2 OLD = {:.2f}, z_aim - z = {:.4f} m'
-                  .format(UB2, dz))
-            UB2 = UB2 - dUB2*dz
-            print('UB2 NEW = {:.2f}'.format(UB2))
-            attempts_opt += 1
+        if optimize:
+            # change UB2 value proportional to dz
+            if not tr.IsAimZ:
+                dz = r_aim[2]-tr.RV_sec[-1, 2]
+                print('UB2 OLD = {:.2f}, z_aim - z = {:.4f} m'
+                    .format(UB2, dz))
+                UB2 = UB2 - dUB2*dz
+                print('UB2 NEW = {:.2f}'.format(UB2))
+                attempts_opt += 1
+            else:
+                break
+            # check if there is a loop while finding secondary to aim
+            if attempts_opt > 20:
+                print('too many attempts B2!')
+                break
         else:
+            print('B2 was not optimized')
             break
-
-        # check if there is a loop while finding secondary to aim
-        if attempts_opt > 20:
-            print('too many attempts B2!')
-            break
-
     return tr
 
 
@@ -808,7 +801,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
                   eps_xy=1e-3, eps_z=1e-3):
     ''' get voltages on A3 and B3 plates to get into rs
     '''
-    print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
+    print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
     print('Target: ' + target)
     if target == 'slit':
         rs = geom.r_dict['slit']
@@ -830,7 +823,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     vltg_fail = False  # flag to track voltage failure
     n_stepsA3 = 0
     while not (tr.IsAimXY and tr.IsAimZ):
-        tr.U[2:4] = [UA3, UB3]
+        tr.U['A3'], tr.U['B3'] = UA3, UB3
         tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
                     tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)
 
@@ -864,7 +857,7 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
             n_stepsZ = 0
             while not tr.IsAimZ:
                 print('pushing Z direction')
-                tr.U[2:4] = [UA3, UB3]
+                tr.U['A3'], tr.U['B3'] = UA3, UB3
                 tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
                             tmax=tmax, eps_xy=eps_xy, eps_z=eps_z)
                 # tr.IsAimZ = True  # if you want to skip UB3 calculation
@@ -873,16 +866,6 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
                       .format(UB3, dz))
                 print('IsAimXY = ', tr.IsAimXY)
                 print('IsAimZ = ', tr.IsAimZ)
-                # if abs(dz) < 1e-2 and n_stepsZ < 50:
-                #     dUB3 = 20.0
-                #     print('dUoct = ', dUB3)
-                # if n_stepsZ > 100:
-                #     dUB3 = 7.0
-                #     print('dUoct = ', dUB3)
-                #     print('n_stepsZ = ', n_stepsZ)
-                # if n_stepsZ > 200:
-                #     print('too long!')
-                #     break
 
                 UB3 = UB3 - dUB3*dz
                 n_stepsZ += 1
@@ -909,11 +892,11 @@ def optimize_A4(tr, geom, UA4, dUA4,
     ''' get voltages on A4 to get proper alpha angle at rs
     '''
     print('\n A4 optimization\n')
-    print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
+    print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
 
     rs = geom.r_dict['slit']
     stop_plane_n = geom.slit_plane_n
-    alpha_target = geom.sec_angles[0]
+    alpha_target = geom.angles['an']
 
     tr.dt1 = dt
     tr.dt2 = dt
@@ -926,7 +909,7 @@ def optimize_A4(tr, geom, UA4, dUA4,
     dalpha = alpha_target - alpha
     n_stepsA4 = 0
     while (abs(alpha - alpha_target) > eps_alpha):
-        tr.U[4] = UA4
+        tr.U['A4'] = UA4
         tr.pass_sec(RV0, rs, E, B, geom,  # stop_plane_n=stop_plane_n,
                     tmax=tmax, eps_xy=1e-2, eps_z=1e-2)
 
@@ -1100,6 +1083,23 @@ def rotate(input_array, axis=(1, 0, 0), deg=0):
     return input_array
 
 
+@numba.jit()
+def rotate3(input_array, angles, inverse=False):
+    '''
+    rotate vector in 3 dimentions
+    '''
+    alpha, beta, gamma = angles
+    axis = calc_vector(1, alpha, beta)
+
+    if inverse:
+        rotated_array = rotate(input_array, axis=axis, deg=-gamma)
+        rotated_array = rotate(rotated_array, axis=(0, 1, 0), deg=-beta)
+        rotated_array = rotate(rotated_array, axis=(0, 0, 1), deg=-alpha)
+    else:
+        rotated_array = rotate(input_array, axis=(0, 0, 1), deg=alpha)
+        rotated_array = rotate(rotated_array, axis=(0, 1, 0), deg=beta)
+        rotated_array = rotate(rotated_array, axis=axis, deg=gamma)
+    return rotated_array
 # %% Intersection check functions
 def line_plane_intersect(planeNormal, planePoint, rayDirection,
                          rayPoint, eps=1e-6):
@@ -1177,11 +1177,9 @@ def segm_poly_intersect(polygon_coords, segment_coords):
 
 
 # %%
-def plate_flags(range_x, range_y, range_z, U, beamline_angles,
-                plts_geom, plts_angles, plts_center):
+def plate_flags(range_x, range_y, range_z, U,
+                plts_geom, gamma, plts_center):
 
-    alpha, beta, gamma = plts_angles
-    axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
     length, width, thick, gap = plts_geom
 
     # Geometry rotated in system based on central point between plates
@@ -1197,12 +1195,7 @@ def plate_flags(range_x, range_y, range_z, U, beamline_angles,
     UP_full = np.array([UP1, UP2, UP3, UP4, UP5, UP6, UP7, UP8])
     UP_rotated = UP_full.copy()
     for i in range(UP_full.shape[0]):
-        UP_rotated[i, :] = rotate(UP_rotated[i, :],
-                                  axis=(0, 0, 1), deg=alpha)
-        UP_rotated[i, :] = rotate(UP_rotated[i, :],
-                                  axis=(0, 1, 0), deg=beta)
-        UP_rotated[i, :] = rotate(UP_rotated[i, :],
-                                  axis=axis, deg=gamma)
+        UP_rotated[i, :] = rotate(UP_rotated[i, :], axis=(1, 0, 0), deg=gamma)
         # shift coords center
         UP_rotated[i, :] += plts_center
 
@@ -1218,12 +1211,7 @@ def plate_flags(range_x, range_y, range_z, U, beamline_angles,
     LP_full = np.array([LP1, LP2, LP3, LP4, LP5, LP6, LP7, LP8])
     LP_rotated = LP_full.copy()
     for i in range(LP_full.shape[0]):
-        LP_rotated[i, :] = rotate(LP_rotated[i, :],
-                                  axis=(0, 0, 1), deg=alpha)
-        LP_rotated[i, :] = rotate(LP_rotated[i, :],
-                                  axis=(0, 1, 0), deg=beta)
-        LP_rotated[i, :] = rotate(LP_rotated[i, :],
-                                  axis=axis, deg=gamma)
+        LP_rotated[i, :] = rotate(LP_rotated[i, :], axis=(1, 0, 0), deg=gamma)
         # shift coords center
         LP_rotated[i, :] += plts_center
 
@@ -1247,12 +1235,8 @@ def plate_flags(range_x, range_y, range_z, U, beamline_angles,
                    (y >= upper_cube[0, 1]) and (y <= upper_cube[1, 1]) and \
                    (z >= upper_cube[0, 2]) and (z <= upper_cube[1, 2]):
                     r = np.array([x, y, z]) - plts_center
-                    # r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
-                    #                       axis=(0, 0, 1), deg=-alpha),
-                    #                axis=(1, 0, 0), deg=-gamma)
-                    r_rot = rotate(rotate(rotate(r, axis=axis, deg=-gamma),
-                                          axis=(0, 1, 0), deg=-beta),
-                                   axis=(0, 0, 1), deg=-alpha)
+                    # inverse rotation
+                    r_rot = rotate(r, axis=(1, 0, 0), deg=-gamma)
                     # define masks for upper and lower plates
                     upper_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \
@@ -1263,12 +1247,8 @@ def plate_flags(range_x, range_y, range_z, U, beamline_angles,
                    (y >= lower_cube[0, 1]) and (y <= lower_cube[1, 1]) and \
                    (z >= lower_cube[0, 2]) and (z <= lower_cube[1, 2]):
                     r = np.array([x, y, z]) - plts_center
-                    # r_rot = rotate(rotate(rotate(r, axis=(0, 1, 0), deg=-beta),
-                    #                       axis=(0, 0, 1), deg=-alpha),
-                    #                axis=(1, 0, 0), deg=-gamma)
-                    r_rot = rotate(rotate(rotate(r, axis=axis, deg=-gamma),
-                                          axis=(0, 1, 0), deg=-beta),
-                                   axis=(0, 0, 1), deg=-alpha)
+                    # inverse rotation
+                    r_rot = rotate(r, axis=(1, 0, 0), deg=-gamma)
                     # define masks for upper and lower plates
                     lower_plate_flag[i, j, k] = (r_rot[0] >= -length/2.) and \
                         (r_rot[0] <= length/2.) and (r_rot[2] >= -width/2.) and \
@@ -1279,25 +1259,37 @@ def plate_flags(range_x, range_y, range_z, U, beamline_angles,
     return UP_rotated, LP_rotated, upper_plate_flag, lower_plate_flag
 
 
-def return_E(r, Ein, U):
+def return_E(r, Ein, U, geom):
     '''
     take dot and try to interpolate electiric fields in it
     return: interpolated Electric field
-    :param Ein: list of interpolants for Ex, Ey, Ez
+    :param Ein: dict of interpolants for Ex, Ey, Ez
     '''
-    Eout = np.zeros(3)
-    for i in range(len(Ein)):
+    Etotal = np.zeros(3)
+    # do not check plates while particle is in plasma
+    if r[0] < geom.r_dict['aim'][0]-0.05 and r[1] < geom.r_dict['port'][1]:
+        return Etotal
+    # go through all the plates
+    for key in geom.plates_edges.keys():
+        # check primary or secondary beamline
+        angles = geom.angles[key]
+        # shift the center of coord system
+        r_new = r - geom.r_dict[key]
+        # rotate point to the coord system of plates
+        r_new = rotate3(r_new, angles, inverse=True)
+        # interpolate Electric field
+        Etemp = np.zeros(3)
         try:
-            Eout[0] += Ein[i][0](r)*U[i]
-            Eout[1] += Ein[i][1](r)*U[i]
-            Eout[2] += Ein[i][2](r)*U[i]
-            # print('\nORDER INDEX: ', i)
-            # print('r = ', r)
-            # print('U = ', U[i])
-            # print('E = ', Eout)
+            Etemp[0] = Ein[key][0](r_new) * U[key]
+            Etemp[1] = Ein[key][1](r_new) * U[key]
+            Etemp[2] = Ein[key][2](r_new) * U[key]
+            # rotate Etemp
+            Etemp = rotate3(Etemp, angles, inverse=False)
+            # add the result to total E field
+            Etotal += Etemp
         except (ValueError, IndexError):
             continue
-    return Eout
+    return Etotal
 
 
 def return_B(r, Bin):
@@ -1306,14 +1298,12 @@ def return_B(r, Bin):
     return Bout
 
 
-def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
+def save_E(beamline, plts_name, Ex, Ey, Ez, gamma, geom,
            domain, an_params, plate1, plate2, dirname='elecfield'):
     '''
     save Ex, Ey, Ez arrays to file
     '''
-    dirname = dirname + '/' + beamline + \
-        '_alpha_{}_beta_{}_gamma_{}'.format(int(angles[0]), int(angles[1]),
-                                            int(angles[2]))
+    dirname = dirname + '/' + beamline
 
     if not os.path.exists(dirname):
         try:
@@ -1329,8 +1319,8 @@ def save_E(beamline, plts_name, Ex, Ey, Ez, angles, geom,
     with open(dirname + '/' + fname, 'w') as myfile:
         myfile.write(np.array2string(geom)[1:-1] +
                      ' # plate\'s length, width, thic and gap\n')
-        myfile.write(np.array2string(angles)[1:-1] +
-                     ' # plate\'s alpha, beta and gamma angle\n')
+        myfile.write(str(gamma) +
+                     ' # plate\'s gamma angle\n')
         myfile.write(np.array2string(domain, max_line_width=200)[1:-1] +
                      ' # xmin, xmax, ymin, ymax, zmin, zmax, delta\n')
         if plts_name == 'an':
@@ -1360,17 +1350,11 @@ def read_E(beamline, geom, dirname='elecfield'):
                          value: coordinate array of plates centre)
     '''
     r_dict = geom.r_dict
-    if beamline == 'prim':
-        plts_angles = geom.prim_angles
-    elif beamline == 'sec':
-        plts_angles = geom.sec_angles
 
-    E = []
+    E = {}
     edges_dict = {}
-    dirname = dirname + '/' + beamline + \
-        '_alpha_{}_beta_{}_gamma_{}'.format(int(plts_angles[0]),
-                                            int(plts_angles[1]),
-                                            int(plts_angles[2]))
+    dirname = dirname + '/' + beamline
+
     # list of all *.dat files
     file_list = [file for file in os.listdir(dirname) if file.endswith('dat')]
     # push analyzer to the end of the list
@@ -1380,31 +1364,40 @@ def read_E(beamline, geom, dirname='elecfield'):
     for filename in file_list:
         plts_name = filename[0:2]
         r_new = r_dict[plts_name]
+        beamline_angles = copy.deepcopy(geom.angles[plts_name])
+        print('position', r_new)
 
         edges_list = []
         print('\n Reading geometry {} ...'.format(plts_name))
 
         with open(dirname + '/' + filename, 'r') as f:
             geometry = [float(i) for i in f.readline().split()[0:4]]
-            angles = [float(i) for i in f.readline().split()[0:3]]
+            gamma = float(f.readline().split()[0])
+            # xmin, xmax, ymin, ymax, zmin, zmax, delta
             domain = [float(i) for i in f.readline().split()[0:7]]
             if plts_name == 'an':
                 an_params = [float(i) for i in f.readline().split()[0:8]]
                 geom.an_params = np.array(an_params)
+                theta_an = geom.an_params[4]  # analyzer entrance angle
+                beamline_angles[0] -= theta_an
             for line in f:
                 edges_list.append([float(i) for i in line.split()[0:3]])
 
         edges_list = np.array(edges_list)
+        # rotate plates edges
+        for i in range(edges_list.shape[0]):
+            edges_list[i, :] = rotate3(edges_list[i, :], beamline_angles)
+        # shift coords center and put into a dictionary
         edges_dict[plts_name] = np.array([edges_list[0:4, :] + r_new,
                                           edges_list[4:, :] + r_new])
-        print('position', r_new)
+        
         Ex = np.load(dirname + '/' + plts_name + '_Ex.npy')
         Ey = np.load(dirname + '/' + plts_name + '_Ey.npy')
         Ez = np.load(dirname + '/' + plts_name + '_Ez.npy')
 
-        x = np.arange(domain[0], domain[1], domain[6]) + r_new[0]
-        y = np.arange(domain[2], domain[3], domain[6]) + r_new[1]
-        z = np.arange(domain[4], domain[5], domain[6]) + r_new[2]
+        x = np.arange(domain[0], domain[1], domain[6])  # + r_new[0]
+        y = np.arange(domain[2], domain[3], domain[6])  # + r_new[1]
+        z = np.arange(domain[4], domain[5], domain[6])  # + r_new[2]
 
         # make interpolation for Ex, Ey, Ez
         Ex_interp = RegularGridInterpolator((x, y, z), Ex)
@@ -1412,7 +1405,7 @@ def read_E(beamline, geom, dirname='elecfield'):
         Ez_interp = RegularGridInterpolator((x, y, z), Ez)
         E_read = [Ex_interp, Ey_interp, Ez_interp]
 
-        E.append(E_read)
+        E[plts_name] = E_read
 
     return E, edges_dict
 

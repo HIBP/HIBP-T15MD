@@ -545,7 +545,7 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
 
     # plot trajectory
     for tr in traj_list:
-        if tr.Ebeam == Ebeam and tr.U[0] == UA2:
+        if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=full_primary)
             tr.plot_prim(ax2, axes='XZ', color='k', full_primary=full_primary)
@@ -618,14 +618,14 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
 
     for tr in traj_list:
         if plot_all:
-            UA2 = tr.U[0]
+            UA2 = tr.U['A2']
             Ebeam_new = tr.Ebeam
             if Ebeam != Ebeam_new:
                 Ebeam = Ebeam_new
                 sec_color = next(colors)
                 marker = next(markers)
 
-        if tr.Ebeam == Ebeam and tr.U[0] == UA2:
+        if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
             if plot_traj:
                 # plot primary
                 tr.plot_prim(ax1, axes='XY', color='k',
@@ -660,7 +660,7 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
             if not plot_all:
                 ax1.set_title('E={} keV, UA2={} kV, UB2={:.1f} kV, '
                               'Btor={} T, Ipl={} MA'
-                              .format(Ebeam, UA2, tr.U[1], Btor, Ipl))
+                              .format(Ebeam, UA2, tr.U['B2'], Btor, Ipl))
                 break
     ax1.legend()
 
@@ -700,14 +700,12 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     colors = prop_cycle.by_key()['color']
 
     A2list = []
-    det_line_x = []
-    det_line_y = []
+    det_line = np.empty([0, 3])
 
     for tr in traj_list:
         if tr.Ebeam == Ebeam:
-            A2list.append(tr.U[0])
-            det_line_x.append(tr.RV_sec[0, 0])
-            det_line_y.append(tr.RV_sec[0, 1])
+            A2list.append(tr.U['A2'])
+            det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=full_primary)
             tr.plot_prim(ax2, axes='XZ', color='k', full_primary=full_primary)
@@ -727,7 +725,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
                 tr.plot_sec(ax2, axes='XZ', color=color_sec)
 
     if plot_det_line:
-        ax1.plot(det_line_x, det_line_y, '--o', color=color_sec)
+        ax1.plot(det_line[:, 0], det_line[:, 1], '--o', color=color_sec)
 
     # find UA2 max and min
     UA2_max = np.amax(np.array(A2list))
@@ -761,7 +759,7 @@ def plot_grid(traj_list, geom, Btor, Ipl,
     A2list = []
     Elist = []
     for i in range(len(traj_list)):
-        A2list.append(traj_list[i].U[0])
+        A2list.append(traj_list[i].U['A2'])
         Elist.append(traj_list[i].Ebeam)
 
     # make sorted arrays of non repeated values
@@ -807,7 +805,7 @@ def plot_grid(traj_list, geom, Btor, Ipl,
     for i_A2 in range(0, N_A2, 1):
         k = -1
         for i_tr in range(len(traj_list)):
-            if traj_list[i_tr].U[0] == A2list[i_A2]:
+            if traj_list[i_tr].U['A2'] == A2list[i_A2]:
                 k += 1
                 # take the 1-st point of secondary trajectory
                 x = traj_list[i_tr].RV_sec[0, 0]
@@ -845,15 +843,15 @@ def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
     # get A2, A3, B3 and E lists
     Elist = np.array([tr.Ebeam for tr in traj_list])
     Elist = np.unique(Elist)
-    A2list = np.array([tr.U[0] for tr in traj_list])
+    A2list = np.array([tr.U['A2'] for tr in traj_list])
     A2list = np.unique(A2list)
 
     A3B3list = np.full((len(traj_list), 2), np.nan)
     k = -1
     for tr in traj_list:
         k += 1
-        A3B3list[k, 0] = tr.U[2]  # choose A3
-        A3B3list[k, 1] = tr.U[3]  # choose B3
+        A3B3list[k, 0] = tr.U['A3']  # choose A3
+        A3B3list[k, 1] = tr.U['B3']  # choose B3
 
     N_A2 = A2list.shape[0]
     N_E = Elist.shape[0]
@@ -908,7 +906,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     set_axes_param(ax2, 'X (m)', 'Z (m)')
     set_axes_param(ax3, 'Z (m)', 'Y (m)')
     ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
-                  .format(tr.Ebeam, tr.U[0], Btor, Ipl))
+                  .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
@@ -976,7 +974,7 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
     set_axes_param(ax3, 'Z (m)', 'Y (m)')
     tr = fat_beam_list[0]
     ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
-                  .format(tr.Ebeam, tr.U[0], Btor, Ipl))
+                  .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_aim=False)
@@ -1042,7 +1040,7 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
     set_axes_param(ax3, 'Z (m)', 'Y (m)')
     tr = fat_beam_list[0]
     ax1.set_title('E={} keV, UA2={} kV, Btor={} T, Ipl={} MA'
-                  .format(tr.Ebeam, tr.U[0], Btor, Ipl))
+                  .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
     geom.plot_geom(ax1, axes='XY', plot_aim=False, plot_sep=False)
@@ -1171,7 +1169,7 @@ def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
                 Vz = tr.RV_sec[-1, 5]  # Vz
 
                 angle_list.append(
-                    [tr.U[0], tr.U[1],
+                    [tr.U['A2'], tr.U['B2'],
                      np.arctan(Vy/np.sqrt(Vx**2 + Vz**2))*180/np.pi,
                      np.arctan(-Vz/Vx)*180/np.pi])
 
@@ -1213,12 +1211,12 @@ def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
 
     for tr in traj_list:
         if plot_all:
-            UA2 = tr.U[0]
+            UA2 = tr.U['A2']
             sec_color = next(colors)
         else:
             sec_color = 'r'
 
-        if tr.Ebeam == Ebeam and tr.U[0] == UA2:
+        if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
             # plot primary
             ax.plot(tr.RV_prim[:, 0], tr.RV_prim[:, 1],
                      tr.RV_prim[:, 2], color='k')
@@ -1233,7 +1231,7 @@ def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
 
             ax.set_title('E={} keV, UA2={} kV, UB2={:.1f} kV, '
                           'Btor={} T, Ipl={} MA'
-                          .format(Ebeam, UA2, tr.U[1], Btor, Ipl))
+                          .format(Ebeam, UA2, tr.U['B2'], Btor, Ipl))
             # plt.show()
             if not plot_all:
                 break

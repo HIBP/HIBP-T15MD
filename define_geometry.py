@@ -15,7 +15,10 @@ def define_geometry(analyzer=1):
     alpha_prim = 30.  # 20.
     beta_prim = -10.
     gamma_prim = 0.
-    geom.prim_angles = np.array([alpha_prim, beta_prim, gamma_prim])
+    prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),
+                   'B2': np.array([alpha_prim, beta_prim, gamma_prim]),
+                   'A2': np.array([alpha_prim, beta_prim, gamma_prim])}
+    geom.angles.update(prim_angles)
 
     # coordinates of the injection port [m]
     xpatr = 1.5 + 0.726
@@ -25,19 +28,17 @@ def define_geometry(analyzer=1):
 
     # distance from the injection port to the Alpha2 plates
     dist_A2 = 0.4  # [m]
-    # distance from the injection port to the Beta2 plates
-    dist_B2 = dist_A2 + 0.3  # [m]
-    # distance from the injection port to the initial piont of the traj [m]
-    dist_r0 = dist_B2 + 0.2
+    # distance from Alpha2 plates to the Beta2 plates
+    dist_B2 = 0.3  # [m]
+    # distance from Beta2 plates to the initial point of the traj [m]
+    dist_r0 = 0.2
 
     # coordinates of the center of the ALPHA2 plates
-    geom.add_coords('A2', 'port', dist_A2, geom.prim_angles)
-
+    geom.add_coords('A2', 'port', dist_A2, geom.angles['A2'])
     # coordinates of the center of the BETA2 plates
-    geom.add_coords('B2', 'port', dist_B2, geom.prim_angles)
-
+    geom.add_coords('B2', 'A2', dist_B2, geom.angles['B2'])
     # coordinates of the initial point of the trajectory [m]
-    geom.add_coords('r0', 'port', dist_r0, geom.prim_angles)
+    geom.add_coords('r0', 'B2', dist_r0, geom.angles['r0'])
 
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
@@ -48,6 +49,7 @@ def define_geometry(analyzer=1):
         alpha_sec = 10.
         beta_sec = 20.
         gamma_sec = -20.
+        A3_angles = np.array([alpha_sec, beta_sec, gamma_sec])
     elif analyzer == 2:
         xaim = 2.6  # 2.5
         yaim = -0.15
@@ -56,40 +58,42 @@ def define_geometry(analyzer=1):
         alpha_sec = 35.  # 5.
         beta_sec = 20.
         gamma_sec = -20.
+        # in the second line U_lower_plate=0
+        A3_angles = np.array([alpha_sec, beta_sec, gamma_sec+180.])
     r_aim = np.array([xaim, yaim, zaim])
     geom.r_dict['aim'] = r_aim
 
     # SECONDARY beamline geometry
-    geom.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
+    sec_angles = {'A3': A3_angles,
+                  'B3': np.array([alpha_sec, beta_sec, gamma_sec]),
+                  'A4': np.array([alpha_sec, beta_sec, gamma_sec]),
+                  'an': np.array([alpha_sec, beta_sec, gamma_sec])}
+    geom.angles.update(sec_angles)
 
-    # distance from r_aim to the ALPHA3 center
+    # distance from r_aim to the Alpha3 center
     dist_A3 = 0.2  # 0.3  # 1/2 of plates length
-    # distance from r_aim to the BETA3 center
-    dist_B3 = dist_A3 + 0.5  # + 0.6
-    # from r_aim to A4
-    dist_A4 = dist_B3 + 0.5
-    # distance from r_aim the entrance slit of the analyzer
-    dist_s = dist_A4 + 0.5
+    # distance from Alpha3 to the Beta3 center
+    dist_B3 = 0.5  # + 0.6
+    # from Beta3 to Alpha4
+    dist_A4 = 0.5
+    # distance from Alpha4 to the entrance slit of the analyzer
+    dist_s = 0.5
 
     # coordinates of the center of the ALPHA3 plates
-    geom.add_coords('A3', 'aim', dist_A3, geom.sec_angles)
-
+    geom.add_coords('A3', 'aim', dist_A3, geom.angles['A3'])
     # coordinates of the center of the BETA3 plates
-    geom.add_coords('B3', 'aim', dist_B3, geom.sec_angles)
-
+    geom.add_coords('B3', 'A3', dist_B3, geom.angles['B3'])
     # coordinates of the center of the ALPHA4 plates
-    geom.add_coords('A4', 'aim', dist_A4, geom.sec_angles)
-
+    geom.add_coords('A4', 'B3', dist_A4, geom.angles['A4'])
     # Coordinates of the CENTRAL slit
-    geom.add_coords('slit', 'aim', dist_s, geom.sec_angles)
-
+    geom.add_coords('slit', 'A4', dist_s, geom.angles['an'])
     # Coordinates of the ANALYZER
-    geom.add_coords('an', 'aim', dist_s, geom.sec_angles)
+    geom.add_coords('an', 'A4', dist_s, geom.angles['an'])
 
     # print info
     print('\nDefining geometry for Analyzer #{}'.format(analyzer))
-    print('\nPrimary beamline angles: ', geom.prim_angles[0:2])
-    print('Secondary beamline angles: ', geom.sec_angles[0:3])
+    print('\nPrimary beamline angles: ', geom.angles['r0'])
+    print('Secondary beamline angles: ', geom.angles['A3'])
     print('r0 = ', np.round(geom.r_dict['r0'], 3))
     print('r_aim = ', r_aim)
     print('r_slit = ', np.round(geom.r_dict['slit'], 3))
