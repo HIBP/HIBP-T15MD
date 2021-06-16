@@ -15,6 +15,10 @@ if __name__ == '__main__':
     # toroidal field on the axis
     Btor = 1.0  # [T]
     Ipl = 1.0  # Plasma current [MA]
+    print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
+
+    # choose analyzer number
+    analyzer = 1
 
     # probing ion charge and mass
     q = 1.60217662e-19  # electron charge [Co]
@@ -22,11 +26,11 @@ if __name__ == '__main__':
 
     # initial beam energy range
     dEbeam = 20.
-    Ebeam_range = np.arange(240., 240. + dEbeam, dEbeam)  # [keV]
+    Ebeam_range = np.arange(160., 160. + dEbeam, dEbeam)  # [keV]
 
     # A2 plates voltage
     dUA2 = 3.
-    UA2_range = np.arange(30., 30. + dUA2, dUA2)  # [kV]
+    UA2_range = np.arange(18., 18. + dUA2, dUA2)  # [kV]
 
     # B2 plates voltage
     UB2 = 0.0  # [kV]
@@ -39,13 +43,14 @@ if __name__ == '__main__':
     # A3 voltages
     UA3 = 0.0  # [kV]
     dUA3 = 7.0  # [kV/m]
+    if analyzer == 2: dUA3 = -dUA3
 
     # A4 voltages
     UA4 = 0.0  # [kV]
     dUA4 = 2.0  # [kV/m]
 
 # %% Define Geometry
-    geomT15 = defgeom.define_geometry(Btor, Ipl)
+    geomT15 = defgeom.define_geometry(analyzer=analyzer)
     r0 = geomT15.r_dict['r0']  # trajectory starting point
 
     # angles of aim plane normal [deg]
@@ -161,9 +166,9 @@ if __name__ == '__main__':
     traj_list_a3b3 = []
     for tr in copy.deepcopy(traj_list_passed):
         tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
-                                         E, B, dt, target='slit',
-                                         UA3_max=40., UB3_max=40.,
-                                         eps_xy=1e-3, eps_z=1e-3)
+                                          E, B, dt, target='slit',
+                                          UA3_max=40., UB3_max=40.,
+                                          eps_xy=1e-3, eps_z=1e-3)
         if not (True in tr.IntersectGeometrySec.values()) and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
@@ -180,11 +185,11 @@ if __name__ == '__main__':
                           linestyle_A2='--', linestyle_E='-',
                           marker_E='p')
     hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
-                     full_primary=False, plot_analyzer=True,
-                     subplots_vertical=True, scale=3.5)
+                      full_primary=False, plot_analyzer=True,
+                      subplots_vertical=True, scale=3.5)
     hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
-                     full_primary=False, plot_analyzer=False,
-                     plot_det_line=False, subplots_vertical=True, scale=5)
+                      full_primary=False, plot_analyzer=False,
+                      plot_det_line=False, subplots_vertical=True, scale=5)
 
 # %% Pass trajectory to the Analyzer
 #     print('\n Optimizing entrance angle to Analyzer with A4')

@@ -668,7 +668,7 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
 # %%
 def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
               plot_analyzer=False, plot_det_line=False,
-              subplots_vertical=False, scale=5):
+              subplots_vertical=False, scale=5, color_sec='r'):
     '''
     plot scan for one beam with particular energy in 2 planes: xy, xz
     :param traj_list: list of trajectories
@@ -723,11 +723,11 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
                         ax2.plot(sec_tr[0, 0], sec_tr[0, 2], 'o',
                                  color=colors[i], markerfacecolor='w')
             else:
-                tr.plot_sec(ax1, axes='XY', color='r')
-                tr.plot_sec(ax2, axes='XZ', color='r')
+                tr.plot_sec(ax1, axes='XY', color=color_sec)
+                tr.plot_sec(ax2, axes='XZ', color=color_sec)
 
     if plot_det_line:
-        ax1.plot(det_line_x, det_line_y, '--o', color='r')
+        ax1.plot(det_line_x, det_line_y, '--o', color=color_sec)
 
     # find UA2 max and min
     UA2_max = np.amax(np.array(A2list))

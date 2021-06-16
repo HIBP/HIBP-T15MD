@@ -45,8 +45,8 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'A3'
-    save_data = True
+    plts_name = 'A2'
+    save_data = False
 
     # define voltages [Volts]
     Uupper_plate = 0.
@@ -56,11 +56,11 @@ if __name__ == '__main__':
     plts_center = np.array([0., 0., 0.])  # plates center
     # initially plates are parallel to XZ plane
     # define primary beamline angles
-    alpha_prim = 20.  # angle with X axis in XY plane (alpha)
-    beta_prim = -10.  # angle with X axis in XZ plane (beta)
+    alpha_prim = 0.  # angle with X axis in XY plane (alpha)
+    beta_prim = 0.  # angle with X axis in XZ plane (beta)
     gamma_prim = 0.  # rotation around the X axis (gamma)
     # define secondary beamline angles
-    alpha_sec = 35.  # angle with X axis in XY plane (alpha)
+    alpha_sec = 40.  # angle with X axis in XY plane (alpha)
     beta_sec = 20.  # angle with X axis in XZ plane (beta)
     gamma_sec = -20.  # 0.  # rotation around the X axis (gamma)
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         beamline = 'prim'
         length = 0.2  # along X [m]
         width = 0.1  # along Z [m]
-        thick = 0.005  # [m]
+        thick = 0.01  # [m]
         gap = 0.05  # distance between plates along Y [m]
         # gamma 0 for A2, -90 for B2
         alpha, beta, gamma = alpha_prim, beta_prim, gamma_prim
@@ -243,3 +243,20 @@ if __name__ == '__main__':
                        upper_plate_flag, lower_plate_flag, dens=1.0)
 #    plot_quiver(range_x, range_y, range_z, Ex, Ey, Ez)
 #    plot_quiver3d(x, y, z, Ex, Ey, Ez, 6)
+
+# %%
+    from scipy.interpolate import LinearNDInterpolator
+    # rotate coords
+    alpha, beta, gamma = 30., 0., 0.
+    axis = hb.calc_vector(1, alpha, beta)
+    points = np.empty([0, 3])
+    values = np.empty([0, 3])
+
+    for i in range(range_x.shape[0]):
+        for j in range(range_y.shape[0]):
+            for k in range(range_z.shape[0]):
+                vector = np.array([range_x[i], range_y[j], range_z[k]])
+                vector_rot1 = hb.rotate(vector, axis=(0, 0, 1), deg=alpha)
+                vector_rot1 = hb.rotate(vector_rot1, axis=(0, 1, 0), deg=beta)
+                vector_rot1 = hb.rotate(vector_rot1, axis=axis, deg=gamma)
+                points = np.vstack([points, vector_rot1])

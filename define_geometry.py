@@ -2,7 +2,7 @@ import numpy as np
 import hibplib as hb
 
 
-def define_geometry(Btor, Ipl):
+def define_geometry(analyzer=1):
     geom = hb.Geometry()
 
     # plasma parameters
@@ -40,17 +40,26 @@ def define_geometry(Btor, Ipl):
     geom.add_coords('r0', 'port', dist_r0, geom.prim_angles)
 
     # AIM position (BEFORE the Secondary beamline) [m]
-    xaim = 2.6  # 2.5
-    yaim = -0.15  # -0.25
-    zaim = 0.0
+    if analyzer == 1:
+        xaim = 2.6  # 2.5
+        yaim = -0.25
+        zaim = 0.0
+        # alpha and beta angles of the SECONDARY beamline [deg]
+        alpha_sec = 10.
+        beta_sec = 20.
+        gamma_sec = -20.
+    elif analyzer == 2:
+        xaim = 2.6  # 2.5
+        yaim = -0.15
+        zaim = 0.0
+        # alpha and beta angles of the SECONDARY beamline [deg]
+        alpha_sec = 35.  # 5.
+        beta_sec = 20.
+        gamma_sec = -20.
     r_aim = np.array([xaim, yaim, zaim])
     geom.r_dict['aim'] = r_aim
 
     # SECONDARY beamline geometry
-    # alpha and beta angles of the SECONDARY beamline [deg]
-    alpha_sec = 40.  # 5.
-    beta_sec = 20.
-    gamma_sec = -20.
     geom.sec_angles = np.array([alpha_sec, beta_sec, gamma_sec])
 
     # distance from r_aim to the ALPHA3 center
@@ -78,8 +87,8 @@ def define_geometry(Btor, Ipl):
     geom.add_coords('an', 'aim', dist_s, geom.sec_angles)
 
     # print info
-    print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
-    print('Primary beamline angles: ', geom.prim_angles[0:2])
+    print('\nDefining geometry for Analyzer #{}'.format(analyzer))
+    print('\nPrimary beamline angles: ', geom.prim_angles[0:2])
     print('Secondary beamline angles: ', geom.sec_angles[0:3])
     print('r0 = ', np.round(geom.r_dict['r0'], 3))
     print('r_aim = ', r_aim)
