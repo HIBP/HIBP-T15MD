@@ -21,6 +21,11 @@ if input_fname != '':
 # UA2 voltages
 UA2min, UA2max, dUA2 = -3., 30., 3.
 
+# initial beam energy range
+dEbeam = 20.
+Ebeam_range = np.arange(160., 160. + dEbeam, dEbeam)  # [keV]
+
+# optimization flags
 optimizeB2 = True
 optimizeA3B3 = False
 
@@ -57,10 +62,6 @@ m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # choose analyzer number
 analyzer = 1
-
-# initial beam energy range
-dEbeam = 20.
-Ebeam_range = np.arange(160., 160. + dEbeam, dEbeam)  # [keV]
 
 # B2 plates voltage
 UB2 = 0.0  # [kV]
