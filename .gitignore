@@ -10,7 +10,7 @@ laplase_class.py
 test_classOld.py
 
 # Side files and folders
-magfield
+magfield*
 elecfield
 tests
 trash

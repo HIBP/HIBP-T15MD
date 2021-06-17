@@ -33,7 +33,6 @@ if optimizeB2:
     optimizeA3B3 = True
     target = 'aim'
     # A2 plates voltage
-    dUA2 = 2.
     # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
     UA2_range = np.arange(UA2min, UA2max, dUA2)  # [kV]
     eps_xy, eps_z = 1e-3, 1e-3
@@ -191,7 +190,6 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
 
 # %% Additional plots
@@ -271,5 +269,4 @@ hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
 #                   plot_det_line=False, subplots_vertical=True, scale=5)
 
 # %% Save list of trajectories
-
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])

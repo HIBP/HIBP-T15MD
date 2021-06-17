@@ -320,14 +320,14 @@ if __name__ == '__main__':
     Ipl = 1.0  # Plasma current [MA]
 
     # Define grid points to caculate B
-    resolution = 0.1  # 0.02    # [m]
-    disc_len = 0.2  # discretisation length for wire [m]
+    resolution = 0.02  # 0.01    # [m]
+    disc_len = 0.1  # discretisation length for wire [m]
     # xmin ymin zmin [m]
-    # volume_corner1 = (1.2, -1.0, -1.0)
-    volume_corner1 = (0.5, -3.0, -0.1)
+    volume_corner1 = (1.1, -1.1, -1.2)
+    # volume_corner1 = (0.5, -3.0, -0.1)
     # xmax ymax zmax [m]
-    # volume_corner2 = (5.3+resolution, 1.8+resolution, 0.5+resolution)
-    volume_corner2 = (3.5+resolution, 2.5+resolution, 0.1+resolution)
+    volume_corner2 = (5.4+resolution, 2.1+resolution, 0.5+resolution)
+    # volume_corner2 = (3.5+resolution, 2.5+resolution, 0.1+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
@@ -343,12 +343,12 @@ if __name__ == '__main__':
           ' volume_corner1 = {} [m]\n'.format(volume_corner1) +
           ' volume_corner2 = {} [m]\n'.format(volume_corner2))
 
-    # calculate B field at given points
-    B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
-
     # Txt with plasma current calculated in Tokameq
     tokameq_file = '1MA_sn.txt'
     B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl, disc_len=disc_len)
+
+    # calculate B field at given points
+    B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
 
     pf_coils = hb.import_PFcoils('PFCoils.dat')
     B_pol_dict, wires_pol = calc_Bpol(pf_coils, points, disc_len=disc_len)

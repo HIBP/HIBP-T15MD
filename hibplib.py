@@ -249,7 +249,7 @@ class Traj():
             # find where secondary trajectory starts:
             for i in range(self.RV_prim.shape[0]):
                 if np.linalg.norm(self.RV_prim[i, :3]
-                                  - self.RV_sec[0, :3]) < 1e-4:
+                                  - self.RV_sec[0, :3]) < 1e-3:
                     index = i+1
         ax.plot(self.RV_prim[:index, index_X],
                 self.RV_prim[:index, index_Y],
@@ -1460,7 +1460,7 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
 
     # plot B stream
     hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
-                          plot_sep=False)
+                          plot_sep=False, dens=3.0)
 
     x = np.arange(volume_corner1[0], volume_corner2[0], resolution)
     y = np.arange(volume_corner1[1], volume_corner2[1], resolution)
