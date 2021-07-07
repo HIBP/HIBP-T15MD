@@ -56,7 +56,7 @@ Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
 # probing ion charge and mass
-q = 1.60217662e-19  # electron charge [Co]
+q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # choose analyzer number

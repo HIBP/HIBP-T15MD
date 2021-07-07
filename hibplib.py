@@ -31,7 +31,7 @@ class Traj():
         self.m = m
         self.Ebeam = Ebeam
         # particle velocity:
-        Vabs = np.sqrt(2 * Ebeam * 1.602176487E-16 / m)
+        Vabs = np.sqrt(2 * Ebeam * 1.602176634e-19 / m)
         V0 = calc_vector(Vabs, alpha, beta, direction=(-1, -1, 1))
         self.alpha = alpha
         self.beta = beta
