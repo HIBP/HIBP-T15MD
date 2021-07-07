@@ -392,33 +392,74 @@ class Geometry():
     def add_detector(self, n_det, det_dist, det_w, det_l):
         ''' add detector to geometry
         '''
+        # if self.an_params.shape[0] == 0:
+        #     print('Analyzer not defined!')
+        #     return
+        # # angles of the beamline
+        # beamline_angles = copy.deepcopy(self.angles['an'])
+        # # set the beamline axis
+        # axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
+
+        # # analyzer parameters
+        # XD, YD1, YD2 = self.an_params[5:]
+        # theta_an = self.an_params[4]
+        # # distance from slit to detector
+        # dist = np.sqrt(XD**2 + (YD1 - YD2)**2)
+        # # find the vector from slit to detector
+        # rd = calc_vector(dist, beamline_angles[0]-theta_an, beamline_angles[1])
+        # rd = rotate(rd, axis=axis, deg=beamline_angles[2])
+        # # angles of the vector from slit to detector
+        # a, b = calc_angles(rd)
+        # # add coords of the center of the central detector
+        # self.add_coords('det', 'slit', dist, [a, b])
+        # # angles of the detector normal
+        # det_angles = copy.deepcopy(self.angles['an'])
+        # det_angles[0] = det_angles[0] + 180. - 2*theta_an
+        # r_det, det_plane_n, det_spot = define_slits(self.r_dict['det'],
+        #                                             det_angles,
+        #                                             n_det, det_dist,
+        #                                             det_w, det_l)
+        n_det = int(n_det)
         if self.an_params.shape[0] == 0:
             print('Analyzer not defined!')
             return
+        # analyzer parameters
+        XD, YD1, YD2 = self.an_params[5:]
+        theta_an = self.an_params[4]
+        # set detector angles
+        det_angles = np.array([0, 0, 0])
+        det_angles[0] = det_angles[0] + 180. - theta_an
+        r_det, det_plane_n, det_spot = define_slits(np.array([np.sqrt(XD**2 + (YD1 - YD2)**2), 0, 0]),
+                                                    det_angles,
+                                                    n_det, det_dist,
+                                                    det_w, det_l)
         # angles of the beamline
         beamline_angles = copy.deepcopy(self.angles['an'])
         # set the beamline axis
         axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
+        # rotate and shift to position
+        for i_slit in range(n_det):
+            for j in range(5):
+                r_det[i_slit, j, :] = rotate(r_det[i_slit, j, :], axis=(0, 0, 1),
+                                          deg=beamline_angles[0]-theta_an)
+                r_det[i_slit, j, :] = rotate(r_det[i_slit, j, :], axis=(0, 1, 0),
+                                          deg=beamline_angles[1])
+                r_det[i_slit, j, :] = rotate(r_det[i_slit, j, :], axis=axis,
+                                          deg=beamline_angles[2])
+                r_det[i_slit, j, :] += self.r_dict['slit']
+            if n_det//2 - i_slit == 0:
+                 # add coords of the center of the central detector
+                 self.add_coords('det', r_det[i_slit, 0, :], 0, [0, 0])
 
-        # analyzer parameters
-        XD, YD1, YD2 = self.an_params[5:]
-        theta_an = self.an_params[4]
-        # distance from slit to detector
-        dist = np.sqrt(XD**2 + (YD1 - YD2)**2)
-        # find the vector from slit to detector
-        rd = calc_vector(dist, beamline_angles[0]-theta_an, beamline_angles[1])
-        rd = rotate(rd, axis=axis, deg=beamline_angles[2])
-        # angles of the vector from slit to detector
-        a, b = calc_angles(rd)
-        # add coords of the center of the central detector
-        self.add_coords('det', 'slit', dist, [a, b])
-        # angles of the detector normal
-        det_angles = copy.deepcopy(self.angles['an'])
-        det_angles[0] = det_angles[0] - 2*theta_an
-        r_det, det_plane_n, det_spot = define_slits(self.r_dict['det'],
-                                                    det_angles,
-                                                    n_det, det_dist,
-                                                    det_w, det_l)
+        # calculate normal to slit plane:
+        det_plane_n = np.cross(r_det[0, 0, :] - r_det[0, 1, :],
+                                r_det[0, 0, :] - r_det[0, 2, :])
+        det_plane_n = det_plane_n/np.linalg.norm(det_plane_n)
+
+        # create polygon, which contains all slits (slits spot):
+        r0 = self.r_dict['det']
+        det_spot = 1.5*np.vstack([r_det[0, [1, 4], :] - r0,
+                                  r_det[-1, [3, 2], :] - r0]) + r0
         self.det_edges = r_det
         self.det_plane_n = det_plane_n
         self.det_spot = det_spot
@@ -1384,13 +1425,26 @@ def read_E(beamline, geom, dirname='elecfield'):
                 edges_list.append([float(i) for i in line.split()[0:3]])
 
         edges_list = np.array(edges_list)
-        # rotate plates edges
-        for i in range(edges_list.shape[0]):
-            edges_list[i, :] = rotate3(edges_list[i, :], beamline_angles)
+       # rotate plates edges
+        if plts_name == 'an':
+            # analyzer should be rotated around the axis of the beamline
+            axis = calc_vector(1, beamline_angles[0], beamline_angles[1])
+            for i in range(edges_list.shape[0]):
+                # alpha angle of the analyzer should be corrected
+                edges_list[i, :] = rotate(edges_list[i, :], axis=(0, 0, 1),
+                                          deg=beamline_angles[0]-theta_an)
+                edges_list[i, :] = rotate(edges_list[i, :], axis=(0, 1, 0),
+                                          deg=beamline_angles[1])
+                edges_list[i, :] = rotate(edges_list[i, :], axis=axis,
+                                          deg=beamline_angles[2])
+        else:
+            # other plates do not need the correction
+            for i in range(edges_list.shape[0]):
+                edges_list[i, :] = rotate3(edges_list[i, :], beamline_angles)
         # shift coords center and put into a dictionary
         edges_dict[plts_name] = np.array([edges_list[0:4, :] + r_new,
                                           edges_list[4:, :] + r_new])
-        
+
         Ex = np.load(dirname + '/' + plts_name + '_Ex.npy')
         Ey = np.load(dirname + '/' + plts_name + '_Ey.npy')
         Ez = np.load(dirname + '/' + plts_name + '_Ez.npy')
