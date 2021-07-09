@@ -1630,7 +1630,7 @@ def save_traj_list(traj_list, Btor, Ipl, r_aim, dirname='output'):
 
     for traj in traj_list:
         Ebeam_list.append(traj.Ebeam)
-        UA2_list.append(traj.U[0])
+        UA2_list.append(traj.U['A2'])
 
     dirname = dirname + '/' + 'B{}_I{}'.format(int(Btor), int(Ipl))
 
