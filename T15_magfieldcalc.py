@@ -231,11 +231,18 @@ def calc_Bplasm(points, filename, CurrTot, disc_len=0.2):
     filename - Tokameq file with Jpl distribution
     CurrTot - total plasma current in [MA] '''
     print('Calculating Plasma Field')
-    # J_vals, x_vals, y_vals = import_Jplasm(filename)
+    # import plasma current density
+    J_vals, x_vals, y_vals = import_Jplasm(filename)
+    step_x, step_y = 3, 3
+    J_vals = J_vals[step_x:J_vals.shape[0]:step_x,
+                    step_y:J_vals.shape[1]:step_y]
+    x_vals = x_vals[step_x:x_vals.shape[0]:step_x]
+    y_vals = y_vals[step_y:y_vals.shape[0]:step_y]
+    print(J_vals.shape)
 
     # single wire plasma approximation
-    J_vals = np.array([[1.0]])
-    x_vals, y_vals = np.array([1.5]), np.array([0.0])
+    # J_vals = np.array([[1.0]])
+    # x_vals, y_vals = np.array([1.5]), np.array([0.0])
 
     Jtot = np.sum(J_vals)  # total J, used for normalisation
 
@@ -307,7 +314,7 @@ def save_B_geometry(corner1, corner2, res, dirname='magfield'):
 # %%
 if __name__ == '__main__':
 
-    save_data = False
+    save_data = True
 
     if input('Recalculate magnetic fields [y/n]? ') == 'y':
         try:
@@ -320,7 +327,7 @@ if __name__ == '__main__':
     Ipl = 1.0  # Plasma current [MA]
 
     # Define grid points to caculate B
-    resolution = 0.02  # 0.01    # [m]
+    resolution = 0.02  # 0.05  # 0.01    # [m]
     disc_len = 0.1  # discretisation length for wire [m]
     # xmin ymin zmin [m]
     volume_corner1 = (1.1, -1.1, -1.2)
