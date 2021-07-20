@@ -765,7 +765,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
             # check XY flag
             if tr.IsAimXY:
                 # insert RV_new into primary traj
-                index = np.argmin(np.linalg.norm(tr.RV_prim[:, :3] -
+                index = np.nanargmin(np.linalg.norm(tr.RV_prim[:, :3] -
                                                  RV_new[0, :3], axis=1))
                 tr.RV_prim = np.insert(tr.RV_prim, index+1, RV_new, axis=0)
                 tr.tag_prim = np.insert(tr.tag_prim, index+1, 11, axis=0)

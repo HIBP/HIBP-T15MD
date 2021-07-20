@@ -23,18 +23,18 @@ UA2min, UA2max, dUA2 = -3., 30., 3.
 
 # initial beam energy range
 dEbeam = 20.
-Ebeam_range = np.arange(160., 160. + dEbeam, dEbeam)  # [keV]
+Ebeam_range = np.arange(300., 320. + dEbeam, dEbeam)  # [keV]
 
 # optimization flags
 optimizeB2 = True
-optimizeA3B3 = False
+optimizeA3B3 = True
 
 if optimizeB2:
     optimizeA3B3 = True
     target = 'aim'
     # A2 plates voltage
     # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
-    UA2_range = np.arange(UA2min, UA2max, dUA2)  # [kV]
+    UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)  # [kV]
     eps_xy, eps_z = 1e-3, 1e-3
 else:
     target = 'aim'
@@ -190,7 +190,7 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
+hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict['aim'])
 
 # %% Additional plots
 
@@ -240,26 +240,26 @@ hbplot.plot_grid_a3b3(traj_list_a3b3, geomT15, Btor, Ipl,
                       linestyle_A2='--', linestyle_E='-',
                       marker_E='p')
 hbplot.plot_traj(traj_list_a3b3, geomT15, 240., 0.0, Btor, Ipl,
-                 full_primary=False, plot_analyzer=True,
-                 subplots_vertical=True, scale=3.5)
+                  full_primary=False, plot_analyzer=True,
+                  subplots_vertical=True, scale=3.5)
 hbplot.plot_scan(traj_list_a3b3, geomT15, 240., Btor, Ipl,
-                 full_primary=False, plot_analyzer=False,
-                 plot_det_line=False, subplots_vertical=True, scale=5)
+                  full_primary=False, plot_analyzer=False,
+                  plot_det_line=False, subplots_vertical=True, scale=5)
 
 # %% Pass trajectory to the Analyzer
-#     print('\n Optimizing entrance angle to Analyzer with A4')
-#     t1 = time.time()
-#     traj_list_a4 = []
-#     for tr in copy.deepcopy(traj_list_a3b3):
-#         tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
-#                             E, B, dt, eps_alpha=0.05)
-#         if not tr.IntersectGeometrySec:
-#             traj_list_a4.append(tr)
-#             print('\n Trajectory saved')
-#             UA4 = tr.U['A4']
+# print('\n Optimizing entrance angle to Analyzer with A4')
+# t1 = time.time()
+# traj_list_a4 = []
+# for tr in copy.deepcopy(traj_list_a3b3):
+#     tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
+#                         E, B, dt, eps_alpha=0.05)
+#     if not tr.IntersectGeometrySec:
+#         traj_list_a4.append(tr)
+#         print('\n Trajectory saved')
+#         UA4 = tr.U['A4']
 
-#     t2 = time.time()
-#     print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
+# t2 = time.time()
+# print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
 
 # %%
 # hbplot.plot_traj(traj_list_a4, geomT15, 240., 0.0, Btor, Ipl,

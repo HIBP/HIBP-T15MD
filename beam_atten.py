@@ -113,7 +113,7 @@ def integrate_traj(tr, ne0, Te0, sigmaEff12, sigmaEff23):
     lam = 0.005  # [m]
     Itot = 2 * ne_loc * sigmaEff_loc * lam * math.exp(-I1-I2)  # relative to I0
 
-    return np.array([tr.Ebeam, tr.U[0], r_loc, Itot, ne_loc, Te_loc, lam,
+    return np.array([tr.Ebeam, tr.U['A2'], r_loc, Itot, ne_loc, Te_loc, lam,
                      sigmaEff_loc, I1, I2, L1, L2])
 
 
@@ -194,12 +194,12 @@ if __name__ == '__main__':
         ion = 'Cs'
 
     # <sigma*v> for Ion+ + e -> Ion2+
-    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
         '+_e_' + ion + '2+.txt'
     sigmaV12_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
     # <sigma*v> for Ion2+ + e -> Ion3+
-    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
         '2+_e_' + ion + '3+.txt'
     sigmaV23_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     # get A2 and E lists
     Elist = np.array([tr.Ebeam for tr in tr_list])
     Elist = np.unique(Elist)
-    A2list = np.array([tr.U[0] for tr in tr_list])
+    A2list = np.array([tr.U['A2'] for tr in tr_list])
     A2list = np.unique(A2list)
 
     # %% plot results
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     for tr in tr_list:
         if tr.Ebeam == E:
-            A2list1.append(tr.U[0])
+            A2list1.append(tr.U['A2'])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=False)
             # plot secondary
