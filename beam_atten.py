@@ -41,7 +41,7 @@ def Te(rho, Te0):
     rho - normalized radius
     Te0 - central temperature
     '''
-    return Te0/(1 + (rho/1)**2)**(4/3)
+    return Te0/(1 + (rho/0.5)**2)**(4/3)
 #    return Te0*rho/rho
 
 
@@ -178,8 +178,8 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 5  # 1.5  # [x10^19 m-3]
-    Te0 = 2.0  # [keV]
+    ne0 = 15  # 1.5  # [x10^19 m-3]
+    Te0 = 15.0  # [keV]
 
     # %% import trajectories
     tr_list = copy.deepcopy(traj_list_passed)
@@ -306,7 +306,7 @@ if __name__ == '__main__':
                      c=c,
                      cmap='jet',
                      marker=marker_E)
-    plt.colorbar(sc)
+    plt.colorbar(sc, label=r'$I_{det} / I_0$')
 
     # %% plot grid of angles
     angles = np.full((Itot.shape[0], 2), np.nan)

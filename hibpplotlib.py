@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-
+'''
+Heavy Ion Beam Probe graphic library
+'''
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -19,22 +20,14 @@ except ModuleNotFoundError:
     print('module alphashape NOT FOUND')
     pass
 
-# %%
-'''
-   ############################################################################
-   Functions for plotting Mafnetic field
-   ############################################################################
-'''
 
-
-# %% visvis plot 3D
+# %% Magnetic field plots
 def plot_3d(B, wires, volume_corner1, volume_corner2,
             grid, resolution, cutoff=2):
     '''
     plot absolute values of B in 3d with visvis
-    :param B: magnetic field values array (has 3 dimensions) [T]
-    :param wires: list of wire objects
-    :return: None
+    B : magnetic field values array (has 3 dimensions) [T]
+    wires : list of wire objects
     '''
 
     Babs = np.linalg.norm(B, axis=1)
@@ -63,14 +56,14 @@ def plot_3d(B, wires, volume_corner1, volume_corner2,
     app.Run()
 
 
-# %% matplotlib plot 2D
+# %% matplotlib plot 2D magnetic field
 def plot_2d(B, points, plane='xy', cutoff=2, n_contours=50):
     '''
-    make contour plot of B in XZ and XY plane
-    :param B: magnetic field values array (has 3 dimensions) [T]
-    :param points: coordinates for points for B vectors to start on
-    :return: None
+    make contour plot of B in XZ or XY plane
+    B : magnetic field values array (has 3 dimensions) [T]
+    points : coordinates for points for B vectors to start on
     '''
+
     pf_coils = hb.import_PFcoils('PFCoils.dat')
     # 2d quiver
     # get 2D values from one plane with Y = 0
@@ -135,9 +128,12 @@ def plot_2d(B, points, plane='xy', cutoff=2, n_contours=50):
     plt.show()
 
 
-# %%
+# %% stream plot of magnetic field
 def plot_B_stream(B, volume_corner1, volume_corner2, resolution,
                   grid, color='r', dens=1.0, plot_sep=True):
+    '''
+    stream plot of magnetic field
+    '''
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
     set_axes_param(ax1, 'X (m)', 'Y (m)')
@@ -181,23 +177,14 @@ def plot_3dm(B, wires, points, cutoff=2):
     plt.show()
 
 
-# %%
-'''
-   ############################################################################
-   Functions for plotting electric field
-   ############################################################################
-'''
-
-
-# %%
+# %% Electric field plots
 def plot_contours(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
                   n_contours=30, plates_color='k'):
     '''
     contour plot of potential U
-    :param X, Y, Z: mesh ranges in X, Y and Z respectively [m]
-    :param U:  plate's U  [V]
-    :param n_contours:  number of planes to skip before plotting
-    :return: None
+    X, Y, Z : mesh ranges in X, Y and Z respectively [m]
+    U :  plate's voltage [V]
+    n_contours :  number of contour lines
     '''
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
@@ -311,9 +298,8 @@ def plot_stream(X, Y, Z, Ex, Ey, Ez, upper_plate_flag, lower_plate_flag,
                 dens=1.0, plates_color='k'):
     '''
     stream plot of Electric field in xy, xz, zy planes
-    :param X, Y, Z: mesh ranges in X, Y and Z respectively [m]
-    :param Ex, Ey, Ez: U gradient components [V/m]
-    :return: None
+    X, Y, Z : mesh ranges in X, Y and Z respectively [m]
+    Ex, Ey, Ez : Electric field components [V/m]
     '''
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
     set_axes_param(ax1, 'X (m)', 'Y (m)')
@@ -355,9 +341,8 @@ def plot_stream(X, Y, Z, Ex, Ey, Ez, upper_plate_flag, lower_plate_flag,
 def plot_quiver(X, Y, Z, Ex, Ey, Ez):
     '''
     quiver plot of Electric field in xy, xz, zy planes
-    :param X, Y, Z: mesh ranges in X, Y and Z respectively [m]
-    :param Ex, Ey, Ez: U gradient components [V/m]
-    :return: None
+    X, Y, Z : mesh ranges in X, Y and Z respectively [m]
+    Ex, Ey, Ez : Electric components [V/m]
     '''
 #    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
@@ -407,11 +392,10 @@ def plot_quiver(X, Y, Z, Ex, Ey, Ez):
 def plot_quiver3d(X, Y, Z, Ex, Ey, Ez, UP_rotated, LP_rotated, n_skip=5):
     '''
     3d quiver plot of Electric field
-    :param X, Y, Z: mesh ranges in X, Y and Z respectively
-    :param Ex, Ey, Ez:  plate's U gradient components
-    :param UP_rotated, LP_rotated: upper's and lower's plate angle coordinates
-    :param n_skip:  number of planes to skip before plotting
-    :return: None
+    X, Y, Z : mesh ranges in X, Y and Z respectively
+    Ex, Ey, Ez :  plate's U gradient components
+    UP_rotated, LP_rotated : upper's and lower's plate angle coordinates
+    n_skip :  number of planes to skip before plotting
     '''
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -445,13 +429,6 @@ def plot_quiver3d(X, Y, Z, Ex, Ey, Ez, UP_rotated, LP_rotated, n_skip=5):
 
 
 # %%
-'''
-   ############################################################################
-   Functions for plotting trajectories
-   ############################################################################
-'''
-
-
 def plot_geometry(ax, TF_coil_filename='TFCoil.dat',
                   camera_data_filename='T15_vessel.txt',
                   separatrix_data_filename='T15_sep.txt',
@@ -499,6 +476,9 @@ def plot_geometry(ax, TF_coil_filename='TFCoil.dat',
 
 # %%
 def set_axes_param(ax, xlabel, ylabel, isequal=True):
+    '''
+    format axes
+    '''
     ax.grid(True)
     ax.grid(which='major', color='tab:gray')  # draw primary grid
     ax.minorticks_on()  # make secondary ticks on axes
@@ -512,18 +492,16 @@ def set_axes_param(ax, xlabel, ylabel, isequal=True):
         ax.axis('equal')
 
 
-# %%
+# %% Plot trajectories
 def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
               plot_analyzer=False, subplots_vertical=False, scale=5):
     '''
     plot primary and secondary trajectories
-    :param traj_list: list of trajectories
-    :param geom: Geometry object
-    :param Ebeam: beam energy [keV]
-    :param: UA2: A2 voltage [kV]
-    :param Btor: toroidal magnetic field [T]
-    :param Ipl: plasma current [MA]
-    :return: None
+    traj_list : list of Traj objects
+    geom : Geometry object
+    Ebeam : beam energy [keV]
+    UA2 : A2 voltage [kV]
+    config : magnetic configuretion
     '''
     if subplots_vertical:
         fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True,
@@ -536,12 +514,8 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY')
-    geom.plot_geom(ax2, axes='XZ')
-    # plot slits
-    if plot_analyzer:
-        geom.plot_analyzer(ax1, axes='XY')
-        geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot(ax1, axes='XY', plot_analyzer=plot_analyzer)
+    geom.plot(ax2, axes='XZ', plot_analyzer=plot_analyzer)
 
     # plot trajectory
     for tr in traj_list:
@@ -576,12 +550,6 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
              full_primary=True):
     '''
     plot fan of trajectories in xy, xz and zy planes
-    :param traj_list: list of trajectories
-    :param geom: Geometry object
-    :param Ebeam: beam energy [keV]
-    :param Btor: toroidal magnetic field [T]
-    :param Ipl: plasma current [MA]
-    :return: None
     '''
 
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
@@ -599,14 +567,9 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
     markers = cycle(('o', 'v', '^', '<', '>', '*', 'D', 'P', 'd'))
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY')
-    geom.plot_geom(ax2, axes='XZ')
-    geom.plot_geom(ax3, axes='ZY')
-    # plot analyzer
-    if plot_analyzer:
-        geom.plot_analyzer(ax1, axes='XY')
-        geom.plot_analyzer(ax2, axes='XZ')
-        geom.plot_analyzer(ax3, axes='ZY')
+    geom.plot(ax1, axes='XY', plot_analyzer=plot_analyzer)
+    geom.plot(ax2, axes='XZ', plot_analyzer=plot_analyzer)
+    geom.plot(ax3, axes='ZY', plot_analyzer=plot_analyzer)
 
     ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'
                   .format(Ebeam, Btor, Ipl))
@@ -670,13 +633,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
               plot_analyzer=False, plot_det_line=False,
               subplots_vertical=False, scale=5, color_sec='r'):
     '''
-    plot scan for one beam with particular energy in 2 planes: xy, xz
-    :param traj_list: list of trajectories
-    :param geom: Geometry object
-    :param Ebeam: beam energy [keV]
-    :param Btor: toroidal magnetic field [T]
-    :param Ipl: plasma current [MA]
-    :return: None
+    plot scan for a particular energy Ebeam in XY and XZ planes
     '''
     if subplots_vertical:
         fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True,
@@ -689,12 +646,8 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY')
-    geom.plot_geom(ax2, axes='XZ')
-    # plot analyzer
-    if plot_analyzer:
-        geom.plot_analyzer(ax1, axes='XY')
-        geom.plot_analyzer(ax2, axes='XZ')
+    geom.plot(ax1, axes='XY', plot_analyzer=plot_analyzer)
+    geom.plot(ax2, axes='XZ', plot_analyzer=plot_analyzer)
 
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
@@ -736,15 +689,11 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
 
 
 # %%
-def plot_grid(traj_list, geom, Btor, Ipl,
+def plot_grid(traj_list, geom, Btor, Ipl, onlyE=False,
               linestyle_A2='--', linestyle_E='-',
               marker_A2='*', marker_E='p'):
     '''
-    plot detector grid in 2 planes: xy, xz
-    :param traj_list: list of trajectories
-    :param Btor: toroidal magnetic field [T]
-    :param Ipl: plasma current [MA]
-    :return: None
+    plot detector grid in XY and XZ planes
     '''
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
 
@@ -752,8 +701,8 @@ def plot_grid(traj_list, geom, Btor, Ipl,
     set_axes_param(ax2, 'X (m)', 'Z (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY')
-    geom.plot_geom(ax2, axes='XZ')
+    geom.plot(ax1, axes='XY')
+    geom.plot(ax2, axes='XZ')
 
     # get the list of A2 and Ebeam
     A2list = []
@@ -800,7 +749,9 @@ def plot_grid(traj_list, geom, Btor, Ipl,
                  linestyle=linestyle_E,
                  marker=marker_E,
                  label=str(int(Elist[i_E]))+' keV')
-
+    if onlyE:
+        ax1.legend()
+        return 0
     # make a grid of constant A2
     for i_A2 in range(0, N_A2, 1):
         k = -1
@@ -827,15 +778,17 @@ def plot_grid(traj_list, geom, Btor, Ipl,
 #    ax1.set(xlim=(0.9, 4.28), ylim=(-1, 1.5), autoscale_on=False)
 
 
-#%%
+# %%
 def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
-                  linestyle_A2='--', linestyle_E='-',
-                  marker_E='p'):
-    '''plot detector grids colored as A3 and B3 voltages'''
+                   linestyle_A2='--', linestyle_E='-',
+                   marker_E='p'):
+    '''
+    plot detector grids colored as A3 and B3 voltages
+    '''
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=True)
-    geom.plot_geom(ax2, axes='XY', plot_sep=True)
+    geom.plot(ax1, axes='XY', plot_sep=True)
+    geom.plot(ax2, axes='XY', plot_sep=True)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
     set_axes_param(ax2, 'X (m)', 'Y (m)')
@@ -898,7 +851,9 @@ def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
 
 # %%
 def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
-
+    '''
+    plot fan of trajectories which go to slits
+    '''
     fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
     # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
@@ -909,14 +864,9 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
                   .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_aim=False)
-    geom.plot_geom(ax2, axes='XZ', plot_aim=False)
-    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
-
-    # draw slits
-    geom.plot_analyzer(ax1, axes='XY')
-    geom.plot_analyzer(ax2, axes='XZ')
-    geom.plot_analyzer(ax3, axes='ZY')
+    geom.plot(ax1, axes='XY', plot_aim=False, plot_analyzer=True)
+    geom.plot(ax2, axes='XZ', plot_aim=False, plot_analyzer=True)
+    geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
     n_slits = geom.slits_edges.shape[0]
     # set color cycler
@@ -964,7 +914,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
 def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
 
     # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
-    fig, axs = plt.subplots(2, 2, sharex='col', #sharey='row',
+    fig, axs = plt.subplots(2, 2, sharex='col',  # sharey='row',
                             gridspec_kw={'height_ratios': [scale, 1],
                                          'width_ratios': [scale, 1]})
     ax1, ax2, ax3 = axs[0, 0], axs[1, 0], axs[0, 1]
@@ -977,13 +927,9 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
                   .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_aim=False)
-    geom.plot_geom(ax2, axes='XZ', plot_aim=False)
-    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
-    # draw slits
-    geom.plot_analyzer(ax1, axes='XY')
-    geom.plot_analyzer(ax2, axes='XZ')
-    geom.plot_analyzer(ax3, axes='ZY')
+    geom.plot(ax1, axes='XY', plot_aim=False, plot_analyzer=True)
+    geom.plot(ax2, axes='XZ', plot_aim=False, plot_analyzer=True)
+    geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
     # get number of slits
     n_slits = geom.slits_edges.shape[0]
@@ -1032,7 +978,9 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
 def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
              plot_prim=True, plot_sec=False, plot_zones=True, plot_cut=False,
              plot_flux=False, alpha_xy=10, alpha_zy=20):
-
+    '''
+    plot Sample Volumes
+    '''
     fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
 
     set_axes_param(ax1, 'X (m)', 'Y (m)')
@@ -1043,11 +991,9 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
                   .format(tr.Ebeam, tr.U['A2'], Btor, Ipl))
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_aim=False, plot_sep=False)
-    geom.plot_geom(ax3, axes='ZY', plot_aim=False)
-    geom.plot_analyzer(ax1, axes='XY')
-    # geom.plot_analyzer(ax2, axes='XZ')
-    geom.plot_analyzer(ax3, axes='ZY')
+    geom.plot(ax1, axes='XY', plot_aim=False,
+              plot_sep=False, plot_analyzer=True)
+    geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
     # get number of slits
     n_slits = geom.slits_edges.shape[0]
@@ -1125,25 +1071,25 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
 
 # %%
 def plot_legend(ax, figure_name):
-    """
+    '''
     plots legend in separate window
-    Args:
-    :ax - axes to get legnd from
-    :figure_name - get figure's name as base for legend's file name
-    return figure object
-    """
+    ax : axes to get legnd from
+    figure_name : get figure's name as base for legend's file name
+    return : figure object
+    '''
     # create separate figure for legend
     figlegend = plt.figure(num='Legend_for_' + figure_name, figsize=(1, 12))
-
     # get legend from ax
     figlegend.legend(*ax.get_legend_handles_labels(), loc="center")
     plt.show()
-
     return figlegend
 
 
 # %%
 def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
+    '''
+    plot grid colored as angles at the last point of the secondary trajectory
+    '''
 
     # plotting params
     fig1, ax1 = plt.subplots()
@@ -1219,7 +1165,7 @@ def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
         if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
             # plot primary
             ax.plot(tr.RV_prim[:, 0], tr.RV_prim[:, 1],
-                     tr.RV_prim[:, 2], color='k')
+                    tr.RV_prim[:, 2], color='k')
 
             last_points = []
             for i in tr.Fan:
@@ -1230,8 +1176,8 @@ def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
                     last_points[:, 2], '--o', color=sec_color)
 
             ax.set_title('E={} keV, UA2={} kV, UB2={:.1f} kV, '
-                          'Btor={} T, Ipl={} MA'
-                          .format(Ebeam, UA2, tr.U['B2'], Btor, Ipl))
+                         'Btor={} T, Ipl={} MA'
+                         .format(Ebeam, UA2, tr.U['B2'], Btor, Ipl))
             # plt.show()
             if not plot_all:
                 break

@@ -9,7 +9,7 @@ import copy
 if __name__ == '__main__':
     traj_list = []
 
-    # grid with alpha=30
+    # grid with alpha=30 y_aim=-25
     names = ['E100-120_UA20-21_alpha30_beta-10_x260y-25z0.pkl',
               'E140-160_UA2-3-27_alpha30_beta-10_x260y-25z0.pkl',
               'E180-200_UA2-3-30_alpha30_beta-10_x260y-25z0.pkl',
@@ -26,12 +26,12 @@ if __name__ == '__main__':
     #           'E260-260_UA230-33_alpha30_beta-10_x260y-10z0.pkl']
 
     # grid with alpha=30 y_aim=-15
-    # names = ['E80-80_UA23-9_alpha30_beta-10_x260y-15z0.pkl',
-    #           'E100-120_UA20-18_alpha30_beta-10_x260y-15z0.pkl',
-    #           'E140-160_UA2-3-24_alpha30_beta-10_x260y-15z0.pkl',
-    #           'E180-200_UA2-3-30_alpha30_beta-10_x260y-15z0.pkl',
-    #           'E220-240_UA29-33_alpha30_beta-10_x260y-15z0.pkl',
-    #           'E260-280_UA224-33_alpha30_beta-10_x260y-15z0.pkl']
+    names = ['E80-80_UA23-15_alpha30_beta-10_x260y-15z0.pkl',
+             'E100-120_UA20-21_alpha30_beta-10_x260y-15z0.pkl',
+             'E140-160_UA2-3-27_alpha30_beta-10_x260y-15z0.pkl',
+             'E180-200_UA2-3-30_alpha30_beta-10_x260y-15z0.pkl',
+             'E220-240_UA212-30_alpha30_beta-10_x260y-15z0.pkl',
+             'E260-260_UA227-30_alpha30_beta-10_x260y-15z0.pkl']
 
     # grid with alpha=20
     # names = ['E100-120_UA2-3-18_alpha20_beta-10_x260y-25z0.pkl',

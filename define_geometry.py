@@ -1,8 +1,25 @@
+'''
+Define main parameters of T-15MD HIBP geometry
+'''
 import numpy as np
 import hibplib as hb
 
 
+# %%
 def define_geometry(analyzer=1):
+    '''
+
+    Parameters
+    ----------
+    analyzer : int, optional
+        number of the HIBP Analyzer. The default is 1.
+
+    Returns
+    -------
+    geom : Geometry
+        Geometry object with a proper configuration.
+
+    '''
     geom = hb.Geometry()
 
     # plasma parameters
@@ -18,13 +35,13 @@ def define_geometry(analyzer=1):
     prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),
                    'B2': np.array([alpha_prim, beta_prim, gamma_prim]),
                    'A2': np.array([alpha_prim, beta_prim, gamma_prim])}
-    geom.angles.update(prim_angles)
+    geom.angles_dict.update(prim_angles)
 
     # coordinates of the injection port [m]
-    xpatr = 1.5 + 0.726
-    ypatr = 1.064
-    zpatr = 0.0
-    geom.r_dict['port'] = np.array([xpatr, ypatr, zpatr])
+    xport_in = 1.5 + 0.726
+    yport_in = 1.064
+    zport_in = 0.0
+    geom.r_dict['port_in'] = np.array([xport_in, yport_in, zport_in])
 
     # distance from the injection port to the Alpha2 plates
     dist_A2 = 0.4  # [m]
@@ -34,11 +51,11 @@ def define_geometry(analyzer=1):
     dist_r0 = 0.2
 
     # coordinates of the center of the ALPHA2 plates
-    geom.add_coords('A2', 'port', dist_A2, geom.angles['A2'])
+    geom.add_coords('A2', 'port_in', dist_A2, geom.angles_dict['A2'])
     # coordinates of the center of the BETA2 plates
-    geom.add_coords('B2', 'A2', dist_B2, geom.angles['B2'])
+    geom.add_coords('B2', 'A2', dist_B2, geom.angles_dict['B2'])
     # coordinates of the initial point of the trajectory [m]
-    geom.add_coords('r0', 'B2', dist_r0, geom.angles['r0'])
+    geom.add_coords('r0', 'B2', dist_r0, geom.angles_dict['r0'])
 
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
@@ -68,7 +85,7 @@ def define_geometry(analyzer=1):
                   'B3': np.array([alpha_sec, beta_sec, gamma_sec]),
                   'A4': np.array([alpha_sec, beta_sec, gamma_sec]),
                   'an': np.array([alpha_sec, beta_sec, gamma_sec])}
-    geom.angles.update(sec_angles)
+    geom.angles_dict.update(sec_angles)
 
     # distance from r_aim to the Alpha3 center
     dist_A3 = 0.2  # 0.3  # 1/2 of plates length
@@ -80,22 +97,22 @@ def define_geometry(analyzer=1):
     dist_s = 0.5
 
     # coordinates of the center of the ALPHA3 plates
-    geom.add_coords('A3', 'aim', dist_A3, geom.angles['A3'])
+    geom.add_coords('A3', 'aim', dist_A3, geom.angles_dict['A3'])
     # coordinates of the center of the BETA3 plates
-    geom.add_coords('B3', 'A3', dist_B3, geom.angles['B3'])
+    geom.add_coords('B3', 'A3', dist_B3, geom.angles_dict['B3'])
     # coordinates of the center of the ALPHA4 plates
-    geom.add_coords('A4', 'B3', dist_A4, geom.angles['A4'])
+    geom.add_coords('A4', 'B3', dist_A4, geom.angles_dict['A4'])
     # Coordinates of the CENTRAL slit
-    geom.add_coords('slit', 'A4', dist_s, geom.angles['an'])
+    geom.add_coords('slit', 'A4', dist_s, geom.angles_dict['an'])
     # Coordinates of the ANALYZER
-    geom.add_coords('an', 'A4', dist_s, geom.angles['an'])
+    geom.add_coords('an', 'A4', dist_s, geom.angles_dict['an'])
 
     # print info
     print('\nDefining geometry for Analyzer #{}'.format(analyzer))
-    print('\nPrimary beamline angles: ', geom.angles['r0'])
-    print('Secondary beamline angles: ', geom.angles['A3'])
+    print('\nPrimary beamline angles: ', geom.angles_dict['r0'])
+    print('Secondary beamline angles: ', geom.angles_dict['A3'])
     print('r0 = ', np.round(geom.r_dict['r0'], 3))
-    print('r_aim = ', r_aim)
+    print('r_aim = ', np.round(geom.r_dict['aim'], 3))
     print('r_slit = ', np.round(geom.r_dict['slit'], 3))
 
     # TOKAMAK GEOMETRY
