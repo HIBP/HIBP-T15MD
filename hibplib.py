@@ -417,7 +417,7 @@ class Analyzer(Plates):
         # set detector angles
         det_angles = np.array([180. - self.theta, 0, 0])
         r_det, det_plane_n, det_spot = \
-            define_slits(np.array([np.sqrt(self.XD**2 + (self.YD1 - self.YD2)**2), 0, 0]),
+            define_slits(np.array([self.XD, self.YD1 - self.YD2, 0]),
                          det_angles, n_det, self.slit_dist, self.slit_dist,
                          slit_l)
         # save detector edges
