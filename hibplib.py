@@ -258,7 +258,7 @@ class Traj():
 
         self.Fan = list_sec
 
-def pass_to_target(self, r_aim, E_interp, B_interp, geom,
+    def pass_to_target(self, r_aim, E_interp, B_interp, geom,
                        stop_plane_n=np.array([1, 0, 0]),
                        eps_xy=1e-3, eps_z=1e-3, dt_min=1e-10,
                        no_intersect=False, no_out_of_bounds=False):
@@ -730,7 +730,7 @@ class Geometry():
             ax.plot(self.coil[:, 0], self.coil[:, 1], '--', color='k')
             ax.plot(self.coil[:, 2], self.coil[:, 3], '--', color='k')
             # plot tokamak camera
-            ax.plot(self.camera[:, 0] + self.R, self.camera[:, 1],
+            ax.plot(self.camera[:, 0], self.camera[:, 1],
                     color='tab:blue')
             # plot first wall
             ax.plot(self.in_fw[:, 0], self.in_fw[:, 1], color='k')
@@ -926,6 +926,8 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
                           no_intersect=True, no_out_of_bounds=True)
         print('IsAimXY = ', tr.IsAimXY)
         print('IsAimZ = ', tr.IsAimZ)
+        if True in tr.IntersectGeometry.values():
+            break
 
         if optimize:
             # change UB2 value proportional to dz
