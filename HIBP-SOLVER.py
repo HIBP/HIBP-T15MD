@@ -38,7 +38,7 @@ pass2AN = False
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3., 30., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = 30., 39., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage

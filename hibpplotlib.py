@@ -7,13 +7,19 @@ import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import visvis as vv
 import wire
 import hibplib as hb
 import pylab
 import os
 from scipy.stats import gaussian_kde
 from itertools import cycle
+
+try:
+    import visvis as vv
+except ModuleNotFoundError:
+    print('module visvis NOT FOUND')
+    pass
+
 try:
     import alphashape
 except ModuleNotFoundError:
@@ -158,6 +164,7 @@ def plot_B_stream(B, volume_corner1, volume_corner2, resolution,
                    By[:, :, z_cut].swapaxes(0, 1), color=color, density=dens)
     ax2.streamplot(x, z, Bx[:, y_cut, :].swapaxes(0, 1),
                    Bz[:, y_cut, :].swapaxes(0, 1), color=color, density=dens)
+    plt.show()
 
 
 # %% matplotlib plot 3D
@@ -222,6 +229,7 @@ def plot_contours(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
 
     # clb = plt.colorbar(CS)
     # clb.set_label('V', labelpad=-40, y=1.05, rotation=0)
+    plt.show()
 
 
 # %%
@@ -247,6 +255,7 @@ def plot_contours_zy(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
 
     # clb = plt.colorbar(CS)
     # clb.set_label('V', labelpad=-40, y=1.05, rotation=0)
+    plt.show()
 
 
 # %%
@@ -269,6 +278,7 @@ def plot_contours_xz(X, Y, Z, U, upper_plate_flag, lower_plate_flag,
              z[:, y_cut, :][upper_plate_flag[:, y_cut, :]], 'o', color='k')
     ax1.plot(x[:, y_cut, :][lower_plate_flag[:, y_cut, :]],
              z[:, y_cut, :][lower_plate_flag[:, y_cut, :]], 'o', color='k')
+    plt.show()
 
 
 # %%
@@ -291,6 +301,7 @@ def plot_stream_zy(X, Y, Z, Ex, Ey, Ez, upper_plate_flag, lower_plate_flag,
              y[x_cut, :, :][upper_plate_flag[x_cut, :, :]], 'o', color='r')
     ax1.plot(z[x_cut, :, :][lower_plate_flag[x_cut, :, :]],
              y[x_cut, :, :][lower_plate_flag[x_cut, :, :]], 'o', color='k')
+    plt.show()
 
 
 # %%
@@ -335,6 +346,7 @@ def plot_stream(X, Y, Z, Ex, Ey, Ez, upper_plate_flag, lower_plate_flag,
              y[x_cut, :, :][upper_plate_flag[x_cut, :, :]], 'o', color='k')
     ax2.plot(z[x_cut, :, :][lower_plate_flag[x_cut, :, :]],
              y[x_cut, :, :][lower_plate_flag[x_cut, :, :]], 'o', color='k')
+    plt.show()
 
 
 # %%
@@ -386,6 +398,7 @@ def plot_quiver(X, Y, Z, Ex, Ey, Ez):
 #                               linewidth=2, linestyle='--', edgecolor='k',
 #                               facecolor='none')
 #    ax3.add_patch(domain)
+    plt.show()
 
 
 # %%
@@ -426,6 +439,7 @@ def plot_quiver3d(X, Y, Z, Ex, Ey, Ez, UP_rotated, LP_rotated, n_skip=5):
                 Ez[skip], length=0.01, normalize=True)
 
     ax.axis('equal')
+    plt.show()
 
 
 # %%
@@ -472,6 +486,7 @@ def plot_geometry(ax, TF_coil_filename='TFCoil.dat',
             ax.add_patch(Rectangle((xc-dx/2, yc-dy/2), dx, dy,
                                    linewidth=1, edgecolor='tab:gray',
                                    facecolor='tab:gray'))
+    plt.show()
 
 
 # %%
@@ -542,6 +557,7 @@ def plot_traj(traj_list, geom, Ebeam, UA2, Btor, Ipl, full_primary=False,
                 tr.plot_sec(ax2, axes='XZ', color='r')
 
             break
+    plt.show()
 
 
 # %%
@@ -626,6 +642,7 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
                               .format(Ebeam, UA2, tr.U['B2'], Btor, Ipl))
                 break
     ax1.legend()
+    plt.show()
 
 
 # %%
@@ -686,7 +703,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
 
     ax1.set_title('Ebeam={} keV, UA2:[{}, {}] kV, Btor = {} T, Ipl = {} MA'
                   .format(Ebeam, UA2_min,  UA2_max, Btor, Ipl))
-
+    plt.show()
 
 # %%
 def plot_grid(traj_list, geom, Btor, Ipl, onlyE=False,
@@ -774,8 +791,8 @@ def plot_grid(traj_list, geom, Btor, Ipl, onlyE=False,
                  label=str(round(A2list[i_A2], 1))+' kV')
 
     ax1.legend()
-
 #    ax1.set(xlim=(0.9, 4.28), ylim=(-1, 1.5), autoscale_on=False)
+    plt.show()
 
 
 # %%
@@ -847,10 +864,12 @@ def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
                      cmap='jet',
                      marker=marker_E)
     plt.colorbar(sc, ax=ax2, label='B3, kV')
+    plt.show()
 
 
 # %%
-def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
+def plot_traj_toslits(tr, geom, Btor, Ipl, slits=[2],
+                      plot_fan=True, plot_flux=True):
     '''
     plot fan of trajectories which go to slits
     '''
@@ -868,7 +887,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     geom.plot(ax2, axes='XZ', plot_aim=False, plot_analyzer=True)
     geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
-    n_slits = geom.slits_edges.shape[0]
+    n_slits = geom.plates_dict['an'].slits_edges.shape[0]
     # set color cycler
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
@@ -888,7 +907,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
             ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color='tab:gray')
 
     # plot secondaries
-    for i_slit in range(n_slits):
+    for i_slit in slits:
         c = next(colors)
         for fan_tr in tr.RV_sec_toslits[i_slit]:
             ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color=c)
@@ -896,7 +915,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
             ax3.plot(fan_tr[:, 2], fan_tr[:, 1], color=c)
 
     # plot zones
-    for i_slit in range(n_slits):
+    for i_slit in slits:
         c = next(colors)
         for fan_tr in tr.RV_sec_toslits[i_slit]:
             ax1.plot(fan_tr[0, 0], fan_tr[0, 1], 'o', color=c,
@@ -908,6 +927,7 @@ def plot_traj_toslits(tr, geom, Btor, Ipl, plot_fan=True, plot_flux=True):
     if plot_flux:
         Psi_vals, x_vals, y_vals, bound_flux = hb.import_Bflux('1MA_sn.txt')
         ax1.contour(x_vals, y_vals, Psi_vals, 100)
+    plt.show()
 
 
 # %%
@@ -972,6 +992,7 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
                          markerfacecolor='white')
                 ax3.plot(fan_tr[0, 2], fan_tr[0, 1], 'o', color=c,
                          markerfacecolor='white')
+    plt.show()
 
 
 # %%
@@ -1067,6 +1088,7 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
             hull_pts_zy = hull_zy.exterior.coords.xy
             ax3.fill(hull_pts_zy[0], hull_pts_zy[1], '--', color=c)
             # ax3.plot(hull_pts_zy[0], hull_pts_zy[1], color='k', lw=0.5)
+    plt.show()
 
 
 # %%
@@ -1129,8 +1151,43 @@ def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
     ax2.legend()
     ax1.axis('tight')
     ax2.axis('tight')
+    plt.show()
 
 
+# %%
+def plot_lam(traj_list, config, rho_interp, Ebeam='all', slits=range(5)):
+    '''
+    plot SV size along trajectory (lambda) vs UA2 and vs rho
+    '''
+    # plotting params
+    fig1, ax1 = plt.subplots()
+    fig1, ax2 = plt.subplots()
+    set_axes_param(ax1, 'UA2 (kV)', r'$\lambda$ (mm)')
+    set_axes_param(ax2, r'$\rho', r'$\lambda$ (mm)')
+
+    if Ebeam == 'all':
+        equal_E_list = np.array([tr.Ebeam for tr in traj_list])
+        equal_E_list = np.unique(equal_E_list)
+    else:
+        equal_E_list = np.array([float(Ebeam)])
+    
+    for Eb in equal_E_list:
+        for i_slit in slits:
+            UA2_list = []
+            rho_list = []
+            lam_list = []
+            for tr in traj_list:
+                if tr.Ebeam == Eb and tr.ion_zones[i_slit].shape[0] > 0:
+                    UA2_list.append(tr.U['A2'])
+                    rho_list.append(rho_interp(tr.RV_sec[0, :3])[0])
+                    lam_list.append(np.linalg.norm(tr.ion_zones[i_slit][0]
+                                                   - tr.ion_zones[i_slit][-1])*1000)
+            ax1.plot(UA2_list, lam_list, '-o', label='slit ' + str(i_slit+1))
+            ax2.plot(rho_list, lam_list, '-o', label='slit ' + str(i_slit+1))
+    ax1.legend()
+    ax2.legend()
+    plt.show()
+        
 # %%
 def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
                azim=0.0, elev=0.0,
