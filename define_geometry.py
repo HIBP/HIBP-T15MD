@@ -29,7 +29,7 @@ def define_geometry(analyzer=1):
 
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 30.  # 20.
+    alpha_prim = 34.  # 20.  # 30.
     beta_prim = -10.
     gamma_prim = 0.
     prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),
@@ -38,15 +38,15 @@ def define_geometry(analyzer=1):
     geom.angles_dict.update(prim_angles)
 
     # coordinates of the injection port [m]
-    xport_in = 1.5 + 0.726
-    yport_in = 1.064
-    zport_in = 0.0
+    xport_in = 2.136  # 1.5 + 0.726
+    yport_in = 1.189  # 1.064
+    zport_in = 0.019  # 0.0
     geom.r_dict['port_in'] = np.array([xport_in, yport_in, zport_in])
 
     # distance from the injection port to the Alpha2 plates
-    dist_A2 = 0.4  # [m]
+    dist_A2 = 0.3  # [m]
     # distance from Alpha2 plates to the Beta2 plates
-    dist_B2 = 0.3  # [m]
+    dist_B2 = 0.4  # [m]
     # distance from Beta2 plates to the initial point of the traj [m]
     dist_r0 = 0.2
 
@@ -60,8 +60,8 @@ def define_geometry(analyzer=1):
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
         xaim = 2.6  # 2.5
-        yaim = -0.25
-        zaim = 0.0
+        yaim = -0.15  # -0.25
+        zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
         beta_sec = 15.  # 20.
@@ -70,7 +70,7 @@ def define_geometry(analyzer=1):
     elif analyzer == 2:
         xaim = 2.6  # 2.5
         yaim = -0.15
-        zaim = 0.0
+        zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 35.  # 5.
         beta_sec = 25.  # 20.
@@ -117,8 +117,8 @@ def define_geometry(analyzer=1):
 
     # TOKAMAK GEOMETRY
     # chamber entrance and exit coordinates
-    geom.chamb_ent = [(2.016, 1.069), (2.238, 1.193),
-                      (2.211, 0.937), (2.363, 1.04)]
+    geom.chamb_ent = [(1.87, 1.152), (1.675, 1.434),
+                      (2.358, 0.445), (1.995, 0.970)]
     geom.chamb_ext = [(2.39, -0.44), (2.39, -2.0),
                       (2.39, 0.44), (2.39, 0.8)]
 

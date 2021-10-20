@@ -74,6 +74,7 @@ class Traj():
         self.dt2 = dt
         self.IsAimXY = False
         self.IsAimZ = False
+        self.fan_ok = False
         self.IntersectGeometry = {'A2': False, 'B2': False, 'chamb': False}
         self.IntersectGeometrySec = {'A3': False, 'B3': False, 'A4': False,
                                      'chamb': False}
@@ -251,12 +252,94 @@ class Traj():
             self.pass_sec(RV02, r_aim, E_interp, B_interp, geom,
                           stop_plane_n=stop_plane_n,
                           eps_xy=eps_xy, eps_z=eps_z)
-            if (no_intersect and True in self.IntersectGeometrySec.values()) \
-               or (no_out_of_bounds and self.B_out_of_bounds):
+            if (no_intersect and True in self.IntersectGeometrySec.values()) or \
+               (no_out_of_bounds and self.B_out_of_bounds):
                 continue
             list_sec.append(self.RV_sec)
 
         self.Fan = list_sec
+
+    def pass_to_target(self, r_aim, E_interp, B_interp, geom,
+                       stop_plane_n=np.array([1, 0, 0]),
+                       eps_xy=1e-3, eps_z=1e-3, dt_min=1e-10,
+                       no_intersect=False, no_out_of_bounds=False):
+        '''
+        find secondary trajectory which goes directly to target
+        '''
+        if True in self.IntersectGeometry.values():
+            print('There is intersection at primary trajectory')
+            return
+        if len(self.Fan) == 0:
+            print('NO secondary trajectories')
+            return
+        # reset flags in order to let the algorithm work properly
+        self.IsAimXY = False
+        self.IsAimZ = False
+        # reset intersection flags for secondaries
+        for key in self.IntersectGeometrySec.keys():
+            self.IntersectGeometrySec[key] = False
+
+        # find which secondaries are higher/lower than r_aim
+        # sign = -1 means higher, 1 means lower
+        signs = np.array([np.sign(np.cross(RV[-1, :3], r_aim)[-1])
+                          for RV in self.Fan])
+        are_higher = np.argwhere(signs == -1)
+        are_lower = np.argwhere(signs == 1)
+        twisted_fan = False  # flag to detect twist of the fan
+
+        if are_higher.shape[0] == 0:
+            print('all secondaries are lower than aim!')
+            n = int(are_lower[are_lower.shape[0]//2])
+        elif are_lower.shape[0] == 0:
+            print('all secondaries are higher than aim!')
+            n = int(are_higher[are_higher.shape[0]//2])
+        else:
+            if are_higher[-1] > are_lower[0]:
+                print('Fan is twisted!')
+                twisted_fan = True
+                n = int(are_lower[-1])
+            else:
+                n = int(are_higher[-1])  # find the last one which is higher
+                self.fan_ok = True
+        RV_old = np.array([self.Fan[n][0]])
+
+        # find secondary, which goes directly into r_aim
+        self.dt1 = self.dt1/2.
+        while True:
+            # make a small step along primary trajectory
+            r = RV_old[0, :3]
+            try:
+                B_local = return_B(r, B_interp)
+            except ValueError:
+                print('B out of bounds while passing secondary to target')
+                break
+            E_local = np.array([0., 0., 0.])
+            RV_new = runge_kutt(self.q / self.m, RV_old, self.dt1,
+                                E_local, B_local)
+            # pass new secondary trajectory
+            self.pass_sec(RV_new, r_aim, E_interp, B_interp, geom,
+                          stop_plane_n=stop_plane_n,
+                          eps_xy=eps_xy, eps_z=eps_z)
+            # check XY flag
+            if self.IsAimXY:
+                # insert RV_new into primary traj
+                index = np.nanargmin(np.linalg.norm(self.RV_prim[:, :3] -
+                                                    RV_new[0, :3], axis=1))
+                self.RV_prim = np.insert(self.RV_prim, index+1, RV_new, axis=0)
+                self.tag_prim = np.insert(self.tag_prim, index+1, 11, axis=0)
+                break
+            # check if the new secondary traj is lower than r_aim
+            if (not twisted_fan and
+                    np.sign(np.cross(self.RV_sec[-1, :3], r_aim)[-1]) > 0):
+                # if lower, halve the timestep and try once more
+                self.dt1 = self.dt1/2.
+                print('dt1={}'.format(self.dt1))
+                if self.dt1 < dt_min:
+                    print('dt too small')
+                    break
+            else:
+                # if higher, continue steps along the primary
+                RV_old = RV_new
 
     def add_slits(self, n_slits):
         '''
@@ -280,7 +363,7 @@ class Traj():
             # find where secondary trajectory starts:
             for i in range(self.RV_prim.shape[0]):
                 if np.linalg.norm(self.RV_prim[i, :3]
-                                  - self.RV_sec[0, :3]) < 1e-3:
+                                  - self.RV_sec[0, :3]) < 1e-4:
                     index = i+1
         ax.plot(self.RV_prim[:index, index_X],
                 self.RV_prim[:index, index_Y],
@@ -338,7 +421,7 @@ class Plates():
         '''
         self.edges = edges
 
-    def rotate(self, angles, beamline_angles):
+    def rotate(self, angles, beamline_angles, inverse=False):
         '''
         rotate plates on angles around the axis with beamline_angles
         '''
@@ -346,7 +429,8 @@ class Plates():
         self.beamline_angles = beamline_angles
         for i in range(self.edges.shape[0]):
             self.edges[i, :] = rotate3(self.edges[i, :],
-                                       angles, beamline_angles)
+                                       angles, beamline_angles,
+                                       inverse=inverse)
 
     def shift(self, r_new):
         '''
@@ -363,6 +447,11 @@ class Plates():
         if segm_poly_intersect(self.edges[0][:4], segment_coords) or \
            segm_poly_intersect(self.edges[1][:4], segment_coords):
             return True
+        # if plates are flared
+        if self.edges.shape[1] > 4:
+            if segm_poly_intersect(self.edges[0][-4:], segment_coords) or \
+               segm_poly_intersect(self.edges[1][-4:], segment_coords):
+                return True
         return False
 
     def plot(self, ax, axes='XY'):
@@ -590,14 +679,14 @@ class Geometry():
             # if len(self.chamb_ent) == 0: return False
             for i in np.arange(0, len(self.chamb_ent), 2):
                 intersect_flag = intersect_flag or \
-                    segm_intersect(point1[0:2], point2[0:2],
+                    is_intersect(point1[0:2], point2[0:2],
                                    self.chamb_ent[i], self.chamb_ent[i+1])
         elif beamline == 'sec':
             # check intersection with chamber exit
             # if len(self.chamb_ext) == 0: return False
             for i in np.arange(0, len(self.chamb_ext), 2):
                 intersect_flag = intersect_flag or \
-                    segm_intersect(point1[0:2], point2[0:2],
+                    is_intersect(point1[0:2], point2[0:2],
                                    self.chamb_ext[i], self.chamb_ext[i+1])
         return intersect_flag
 
@@ -613,7 +702,7 @@ class Geometry():
             # check if a point in inside the beamline
             if (key in ['A1', 'B1', 'A2', 'B2'] and
                 point1[1] > self.r_dict['port_in'][1]) or \
-                (key in ['A3', 'B3', 'A4', 'B4'] and
+                (key in ['A3', 'A3d', 'B3', 'A4', 'A4d', 'B4'] and
                  point2[0] > self.r_dict['aim'][0]-0.05):
                 # check intersection
                 if self.plates_dict[key].check_intersect(point1, point2):
@@ -642,12 +731,13 @@ class Geometry():
         '''
         plot all geometry objects
         '''
+        # plot camera and separatrix in XY plane
         if axes == 'XY':
             # plot toroidal coil
             ax.plot(self.coil[:, 0], self.coil[:, 1], '--', color='k')
             ax.plot(self.coil[:, 2], self.coil[:, 3], '--', color='k')
             # plot tokamak camera
-            ax.plot(self.camera[:, 0] + self.R, self.camera[:, 1],
+            ax.plot(self.camera[:, 0], self.camera[:, 1],
                     color='tab:blue')
             # plot first wall
             ax.plot(self.in_fw[:, 0], self.in_fw[:, 1], color='k')
@@ -679,6 +769,27 @@ class Geometry():
             # plot the center of the central slit
             ax.plot(self.r_dict['slit'][index_X], self.r_dict['slit'][index_Y],
                     '*', color='g')
+
+
+# %%
+def add_diafragm(geom, plts_name, diaf_name, diaf_width=0.1):
+    '''
+    add new plates object which works as a diafragm
+    '''
+    # create new object in plates dictionary as a copy of existing plates
+    geom.plates_dict[diaf_name] = copy.deepcopy(geom.plates_dict[plts_name])
+    angles = geom.plates_dict[diaf_name].angles
+    beamline_angles = geom.plates_dict[diaf_name].beamline_angles
+    r0 = geom.r_dict[plts_name]
+    for i in [0, 1]:  # index for upper/lower plate
+        for j in [0, 1]:
+            # rotate and shift edge to initial coord system
+            coords = rotate3(geom.plates_dict[diaf_name].edges[i][j] -
+                             r0, angles, beamline_angles, inverse=True)
+            # shift up for upper plate and down for lower
+            coords += [0, diaf_width*(1-2*i), 0]
+            geom.plates_dict[diaf_name].edges[i][3-j] = \
+                rotate3(coords, angles, beamline_angles, inverse=False) + r0
 
 
 # %%
@@ -801,110 +912,35 @@ def runge_kutt(k, RV, dt, E, B):
 
 # %%
 def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
-                optimize=True, eps_xy=1e-3, eps_z=1e-3):
+                optimize=True, eps_xy=1e-3, eps_z=1e-3, dt_min=1e-10):
     '''
     get voltages on B2 plates and choose secondary trajectory
-    which goes into r_aim
+    which goes into target
     '''
+    # set up target
     print('Target: ' + target)
     r_aim = geom.r_dict[target]
-    k = tr.q/tr.m
-    attempts_high = 0
-    attempts_low = 0
     attempts_opt = 0
+    attempts_fan = 0
     while True:
         tr.U['B2'], tr.dt1, tr.dt2 = UB2, dt, dt
-        # pass fan of trajectories
+        # pass fan of secondaries
         tr.pass_fan(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
                     eps_xy=eps_xy, eps_z=eps_z,
                     no_intersect=True, no_out_of_bounds=True)
-        if True in tr.IntersectGeometry.values():
-            break
-        if len(tr.Fan) == 0:
-            print('NO secondary trajectories')
-            break
-        # reset flags in order to let the algorithm work properly
-        tr.IsAimXY = False
-        tr.IsAimZ = False
-        # reset intersection flags
-        for key in tr.IntersectGeometrySec.keys():
-            tr.IntersectGeometrySec[key] = False
-
-        # find which secondaries are higher/lower than r_aim
-        # sign = -1 means higher, 1 means lower
-        signs = np.array([np.sign(np.cross(RV[-1, :3], r_aim)[-1])
-                          for RV in tr.Fan])
-        are_higher = np.argwhere(signs == -1)
-        are_lower = np.argwhere(signs == 1)
-        twisted_fan = False
-
-        if are_higher.shape[0] == 0:
-            print('all secondaries are lower than aim!')
-            attempts_high += 1
-            n = int(are_lower[are_lower.shape[0]//2])
-            if attempts_high > 5:
-                attempts_high = 0
-                print('Aim is too HIGH along Y!')
-                # return tr
-                break
-        elif are_lower.shape[0] == 0:
-            print('all secondaries are higher than aim!')
-            attempts_low += 1
-            n = int(are_higher[are_higher.shape[0]//2])
-            if attempts_low > 5:
-                attempts_low = 0
-                print('Aim is too LOW along Y!')
-                # return tr
-                break
-        else:
-            attempts_high = 0
-            attempts_low = 0
-            if are_higher[-1] > are_lower[0]:
-                print('Fan is twisted!')
-                twisted_fan = True
-                n = int(are_lower[-1])
-            else:
-                n = int(are_higher[-1])  # find the last one which is higher
-        RV_old = np.array([tr.Fan[n][0]])
-
-        # find secondary, which goes directly into r_aim
-        tr.dt1 = tr.dt1/2.
-        while True:
-            # make a small step along primary trajectory
-            r = RV_old[0, :3]
-            try:
-                B_local = return_B(r, B)
-            except ValueError:
-                print('Btor out of bounds while optimizing B2')
-                break
-            E_local = np.array([0., 0., 0.])
-            RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
-            # pass new secondary trajectory
-            tr.pass_sec(RV_new, r_aim, E, B, geom,
-                        stop_plane_n=stop_plane_n, eps_xy=eps_xy, eps_z=eps_z)
-            # check XY flag
-            if tr.IsAimXY:
-                # insert RV_new into primary traj
-                index = np.nanargmin(np.linalg.norm(tr.RV_prim[:, :3] -
-                                                    RV_new[0, :3], axis=1))
-                tr.RV_prim = np.insert(tr.RV_prim, index+1, RV_new, axis=0)
-                tr.tag_prim = np.insert(tr.tag_prim, index+1, 11, axis=0)
-                break
-            # check if the new secondary traj is lower than r_aim
-            if (not twisted_fan and
-                    np.sign(np.cross(tr.RV_sec[-1, :3], r_aim)[-1]) > 0):
-                # if lower, halve the timestep and try once more
-                tr.dt1 = tr.dt1/2.
-                print('dt1={}'.format(tr.dt1))
-                if tr.dt1 < 1e-10:
-                    print('dt too small')
-                    break
-            else:
-                # if higher, continue steps along the primary
-                RV_old = RV_new
-
+        # pass trajectory to the target
+        tr.pass_to_target(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
+                          eps_xy=eps_xy, eps_z=eps_z, dt_min=dt_min,
+                          no_intersect=True, no_out_of_bounds=True)
         print('IsAimXY = ', tr.IsAimXY)
         print('IsAimZ = ', tr.IsAimZ)
+        if True in tr.IntersectGeometry.values():
+            break
+        if not tr.fan_ok:
+            attempts_fan += 1
+        if attempts_fan > 3:
+            print('Fan of secondaries is not ok')
+            break
 
         if optimize:
             # change UB2 value proportional to dz
@@ -1071,16 +1107,114 @@ def optimize_A4(tr, geom, UA4, dUA4, E, B, dt, eps_alpha=0.1):
 
 
 # %%
+def calc_zones(tr, dt, E, B, geom, slits=[2], timestep_divider=5,
+               stop_plane_n=np.array([1, 0, 0]), eps_xy=1e-3, eps_z=1,
+               dt_min=1e-11, no_intersect=True, no_out_of_bounds=True):
+    '''
+    calculate ionization zones
+    '''
+    # find the number of slits
+    n_slits = geom.plates_dict['an'].slits_edges.shape[0]
+    tr.add_slits(n_slits)
+    # set target at the central slit
+    r_aim = geom.plates_dict['an'].slits_edges[n_slits//2, 0, :]
+
+    # create slits polygon
+    slit_plane_n = geom.plates_dict['an'].slit_plane_n
+    slits_spot = geom.plates_dict['an'].slits_spot
+    ax_index = np.argmax(slit_plane_n)
+    slits_spot_flat = np.delete(slits_spot, ax_index, 1)
+    slits_spot_poly = path.Path(slits_spot_flat)
+
+    # find trajectories which go to upper and lower slit edge
+    # find index of primary trajectory point where secondary starts
+    index = np.nanargmin(np.linalg.norm(tr.RV_prim[:, :3] -
+                                        tr.RV_sec[0, :3], axis=1))
+    # set up the index range
+    sec_ind = range(index-2, index+2)
+    print('\nStarting precise fan calculation')
+    k = tr.q / tr.m
+    # divide the timestep
+    tr.dt1 = dt/timestep_divider
+    tr.dt2 = dt
+    # number of steps during new fan calculation
+    n_steps = timestep_divider * (len(sec_ind))
+    # list for new trajectories
+    fan_list = []
+    # take the point to start fan calculation
+    # RV_old = tr.Fan[sec_ind[0]-1][0]
+    RV_old = tr.RV_prim[sec_ind[0]]
+    RV_old = np.array([RV_old])
+    RV_new = RV_old
+
+    i_steps = 0
+    while i_steps <= n_steps:
+        # pass new secondary trajectory
+        tr.pass_sec(RV_new, r_aim, E, B, geom,
+                    stop_plane_n=slit_plane_n,
+                    tmax=9e-5, eps_xy=1e-3, eps_z=1)
+        # make a step on primary trajectory
+        r = RV_old[0, :3]
+        B_local = return_B(r, B)
+        E_local = np.array([0., 0., 0.])
+        RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
+        RV_old = RV_new
+        i_steps += 1
+        # check intersection with slits polygon
+        intersect_coords_flat = np.delete(tr.RV_sec[-1, :3], ax_index, 0)
+        contains_point = slits_spot_poly.contains_point(intersect_coords_flat)
+        if not (True in tr.IntersectGeometrySec.values() or
+                tr.B_out_of_bounds) and contains_point:
+            fan_list.append(tr.RV_sec)
+    tr.Fan = fan_list
+    tr.fan_to_slits = fan_list
+    print('\nPrecise fan calculated')
+
+    for i_slit in slits:
+        # set up upper and lower slit edge
+        upper_edge = [geom.plates_dict['an'].slits_edges[i_slit, 4, :],
+                      geom.plates_dict['an'].slits_edges[i_slit, 1, :]]
+        lower_edge = [geom.plates_dict['an'].slits_edges[i_slit, 3, :],
+                      geom.plates_dict['an'].slits_edges[i_slit, 2, :]]
+        zones_list = []  # list for ion zones coordinates
+        rv_list = []  # list for RV arrays of secondaries
+        for edge in [upper_edge, lower_edge]:
+            # find intersection of fan and slit edge
+            for i_tr in range(len(tr.Fan) - 1):
+                p1, p2 = tr.Fan[i_tr][-1, :3], tr.Fan[i_tr+1][-1, :3]
+                # check intersection between fan segment and slit edge
+                if is_intersect(p1, p2, edge[0], edge[1]):
+                    r_intersect = segm_intersect(p1, p2, edge[0], edge[1])
+                    print('\n intersection with slit ' + str(i_slit))
+                    print(r_intersect)
+                    tr.dt1 = dt/timestep_divider
+                    tr.dt2 = dt
+                    tr.pass_to_target(r_intersect, E, B, geom,
+                                      eps_xy=eps_xy, eps_z=eps_z,
+                                      dt_min=dt_min,
+                                      stop_plane_n=slit_plane_n,
+                                      no_intersect=no_intersect,
+                                      no_out_of_bounds=no_out_of_bounds)
+                    zones_list.append(tr.RV_sec[-1, :3])
+                    rv_list.append(tr.RV_sec)
+                    print('ok!')
+                    break
+        tr.ion_zones[i_slit] = np.array(zones_list)
+        tr.RV_sec_toslits[i_slit] = rv_list
+    return tr
+
+
+# %%
 def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
-                  no_intersect=True, no_out_of_bounds=True):
+                   slits=range(5), no_intersect=True, no_out_of_bounds=True):
     '''
     pass trajectories to slits and save secondaries which get into slits
     '''
-    tr.dt1 = dt
+    tr.dt1 = dt/4
     tr.dt2 = dt
     k = tr.q / tr.m
     # find the number of slits
-    n_slits = geom.slits_edges.shape[0]
+    n_slits = geom.plates_dict['an'].slits_edges.shape[0]
     tr.add_slits(n_slits)
     # find slits position
     if target == 'slit':
@@ -1094,41 +1228,32 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
         slit_plane_n = geom.plates_dict['an'].det_plane_n
         slits_spot = geom.plates_dict['an'].det_spot
 
-    # pass fan of trajectories
-    tr.pass_fan(rs, E, B, geom, stop_plane_n=slit_plane_n,
-                eps_xy=1e-3, eps_z=1e-3,
-                no_intersect=no_intersect, no_out_of_bounds=no_out_of_bounds)
     # create slits polygon
     ax_index = np.argmax(slit_plane_n)
     slits_spot_flat = np.delete(slits_spot, ax_index, 1)
     slits_spot_poly = path.Path(slits_spot_flat)
 
-    # find which secondaries get into slits spot
-    # list of sec trajectories indexes which get into slits spot
-    sec_ind = []
-    for i in range(1, len(tr.Fan)):
-        fan_tr = tr.Fan[i]
-        intersect_coords_flat = np.delete(fan_tr[-1, :3], ax_index, 0)
-        if slits_spot_poly.contains_point(intersect_coords_flat):
-            sec_ind.append(i)
-    if len(sec_ind) == 0:
-        print('\nNo secondaries go to slit spot')
-        return tr
+    # find index of primary trajectory point where secondary starts
+    index = np.nanargmin(np.linalg.norm(tr.RV_prim[:, :3] -
+                                        tr.RV_sec[0, :3], axis=1))
+    sec_ind = range(index-2, index+2)
 
     print('\nStarting precise fan calculation')
     # divide the timestep
     tr.dt1 = dt/timestep_divider
     tr.dt2 = dt
     # number of steps during new fan calculation
-    n_steps = timestep_divider * (len(sec_ind) + 1)
+    n_steps = timestep_divider * (len(sec_ind))
     # list for new trajectories
     fan_list = []
     # take the point to start fan calculation
-    RV_old = tr.Fan[sec_ind[0]-1][0]
+    # RV_old = tr.Fan[sec_ind[0]-1][0]
+    RV_old = tr.RV_prim[sec_ind[0]]
     RV_old = np.array([RV_old])
     RV_new = RV_old
 
     i_steps = 0
+    inside_slits_poly = False
     while i_steps <= n_steps:
         # pass new secondary trajectory
         tr.pass_sec(RV_new, rs, E, B, geom,
@@ -1141,14 +1266,19 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
         i_steps += 1
+        intersect_coords_flat = np.delete(tr.RV_sec[-1, :3], ax_index, 0)
+        contains_point = slits_spot_poly.contains_point(intersect_coords_flat)
         if not (True in tr.IntersectGeometrySec.values() or
-                tr.B_out_of_bounds):
+                tr.B_out_of_bounds) and contains_point:
+            inside_slits_poly = True
             fan_list.append(tr.RV_sec)
+        if not contains_point and inside_slits_poly:
+            break
     print('\nPrecise fan calculated')
 
     # choose secondaries which get into slits
     # start slit cycle
-    for i_slit in range(n_slits):
+    for i_slit in slits:
         print('\nslit = {}'.format(i_slit+1))
         print('center of the slit = ', r_slits[i_slit, 0, :], '\n')
         # create slit polygon
@@ -1271,7 +1401,7 @@ def is_between(A, B, C, eps=1e-6):
     return True
 
 
-def segm_intersect(A, B, C, D):  # doesn't work with collinear case
+def is_intersect(A, B, C, D):  # doesn't work with collinear case
     '''
     function returns true if line segments AB and CD intersect
     '''
@@ -1285,6 +1415,16 @@ def segm_intersect(A, B, C, D):  # doesn't work with collinear case
     # Return true if line segments AB and CD intersect
     return order(A, C, D) != order(B, C, D) and \
         order(A, B, C) != order(A, B, D)
+
+
+def segm_intersect(A, B, C, D):
+    '''
+    function calculates intersection point between vectors AB and CD
+    in case AB and CD intersect
+    '''
+    # define vectors
+    AB, CA, CD = B - A, A - C, D - C
+    return A + AB * (np.cross(CD, CA) / np.cross(AB, CD))
 
 
 def segm_poly_intersect(polygon_coords, segment_coords):
@@ -1779,8 +1919,7 @@ def save_traj_list(traj_list, Btor, Ipl, r_aim, dirname='output'):
     fname = dirname + '/' + 'E{}-{}'.format(int(min(Ebeam_list)),
                                             int(max(Ebeam_list))) + \
         '_UA2{}-{}'.format(int(min(UA2_list)), int(max(UA2_list))) + \
-        '_alpha{}_beta{}'.format(int(round(traj.alpha)),
-                                 int(round(traj.beta))) +\
+        '_alpha{:.1f}_beta{:.1f}'.format(traj.alpha, traj.beta) +\
         '_x{}y{}z{}.pkl'.format(int(r_aim[0]*100), int(r_aim[1]*100),
                                 int(r_aim[2]*100))
 

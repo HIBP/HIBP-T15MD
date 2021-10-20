@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 T-15MD tokamak, HIBP
 
@@ -29,20 +30,21 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 220., 220., 10.
+Emin, Emax, dEbeam = 280., 280., 20.
 
 # set flags
 optimizeB2 = True
 optimizeA3B3 = False
+calculate_zones = False
 pass2AN = False
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3., 21., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -3, 30., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
-UB2, dUB2 = 0.0, 10.  # [kV], [kV/m]
+UB2, dUB2 = 0.0, 7.  # [kV], [kV/m]
 
 # B3 voltages
 UB3, dUB3 = 0.0, 10  # [kV], [kV/m]
@@ -84,6 +86,9 @@ except FileNotFoundError:
 # load E for secondary beamline
 try:
     hb.read_plates('sec', geomT15, E)
+    # add diafragm for A3 plates to Geometry
+    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
     print('\n Secondary Beamline loaded')
 except FileNotFoundError:
     print('\n Secondary Beamline NOT FOUND')
@@ -225,6 +230,26 @@ else:
         traj_list_a3b3.append(tr)
     t2 = time.time()
     print('\n Secondary beamline calculated, t = {:.1f} s\n'.format(t2-t1))
+
+# %% Calculate ionization zones
+if calculate_zones:
+    t1 = time.time()
+    slits = [2]
+    traj_list_zones = []
+    print('\n Ionization zones calculation')
+    for tr in copy.deepcopy(traj_list_a3b3):
+        print('\nEb = {}, UA2 = {:.2f}'.format(tr.Ebeam, tr.U['A2']))
+        tr = hb.calc_zones(tr, dt, E, B, geomT15, slits=slits,
+                           timestep_divider=6,
+                           eps_xy=1e-4, eps_z=1, dt_min=1e-12,
+                           no_intersect=True, no_out_of_bounds=True)
+        traj_list_zones.append(tr)
+        print('\n Trajectory saved')
+    t2 = time.time()
+    print('\n Ionization zones calculated, t = {:.1f} s\n'.format(t2-t1))
+
+    hbplot.plot_traj_toslits(tr, geomT15, Btor, Ipl,
+                             slits=slits, plot_fan=False)
 
 # %% Pass to ANALYZER
 if pass2AN:
