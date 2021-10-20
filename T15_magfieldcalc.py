@@ -231,7 +231,18 @@ def calc_Bplasm(points, filename, CurrTot, disc_len=0.2):
     filename - Tokameq file with Jpl distribution
     CurrTot - total plasma current in [MA] '''
     print('Calculating Plasma Field')
+    # import plasma current density
     J_vals, x_vals, y_vals = import_Jplasm(filename)
+    step_x, step_y = 3, 3
+    J_vals = J_vals[step_x:J_vals.shape[0]:step_x,
+                    step_y:J_vals.shape[1]:step_y]
+    x_vals = x_vals[step_x:x_vals.shape[0]:step_x]
+    y_vals = y_vals[step_y:y_vals.shape[0]:step_y]
+    print(J_vals.shape)
+
+    # single wire plasma approximation
+    # J_vals = np.array([[1.0]])
+    # x_vals, y_vals = np.array([1.5]), np.array([0.0])
 
     Jtot = np.sum(J_vals)  # total J, used for normalisation
 
@@ -316,12 +327,14 @@ if __name__ == '__main__':
     Ipl = 1.0  # Plasma current [MA]
 
     # Define grid points to caculate B
-    resolution = 0.02  # 0.1    # [m]
-    disc_len = 0.2  # discretisation length for wire [m]
+    resolution = 0.02  # 0.05  # 0.01    # [m]
+    disc_len = 0.1  # discretisation length for wire [m]
     # xmin ymin zmin [m]
-    volume_corner1 = (1.2, -1.0, -1.0)
+    volume_corner1 = (1.1, -1.1, -1.2)
+    # volume_corner1 = (0.5, -3.0, -0.1)
     # xmax ymax zmax [m]
-    volume_corner2 = (5.3+resolution, 1.8+resolution, 0.5+resolution)
+    volume_corner2 = (5.4+resolution, 2.1+resolution, 0.5+resolution)
+    # volume_corner2 = (3.5+resolution, 2.5+resolution, 0.1+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
@@ -337,12 +350,12 @@ if __name__ == '__main__':
           ' volume_corner1 = {} [m]\n'.format(volume_corner1) +
           ' volume_corner2 = {} [m]\n'.format(volume_corner2))
 
-    # calculate B field at given points
-    B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
-
     # Txt with plasma current calculated in Tokameq
     tokameq_file = '1MA_sn.txt'
     B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl, disc_len=disc_len)
+
+    # calculate B field at given points
+    B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
 
     pf_coils = hb.import_PFcoils('PFCoils.dat')
     B_pol_dict, wires_pol = calc_Bpol(pf_coils, points, disc_len=disc_len)

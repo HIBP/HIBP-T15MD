@@ -41,7 +41,7 @@ def Te(rho, Te0):
     rho - normalized radius
     Te0 - central temperature
     '''
-    return Te0/(1 + (rho/1)**2)**(4/3)
+    return Te0/(1 + (rho/0.5)**2)**(4/3)
 #    return Te0*rho/rho
 
 
@@ -113,7 +113,7 @@ def integrate_traj(tr, ne0, Te0, sigmaEff12, sigmaEff23):
     lam = 0.005  # [m]
     Itot = 2 * ne_loc * sigmaEff_loc * lam * math.exp(-I1-I2)  # relative to I0
 
-    return np.array([tr.Ebeam, tr.U[0], r_loc, Itot, ne_loc, Te_loc, lam,
+    return np.array([tr.Ebeam, tr.U['A2'], r_loc, Itot, ne_loc, Te_loc, lam,
                      sigmaEff_loc, I1, I2, L1, L2])
 
 
@@ -178,8 +178,8 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 5  # 1.5  # [x10^19 m-3]
-    Te0 = 2.0  # [keV]
+    ne0 = 15  # 1.5  # [x10^19 m-3]
+    Te0 = 15.0  # [keV]
 
     # %% import trajectories
     tr_list = copy.deepcopy(traj_list_passed)
@@ -214,6 +214,7 @@ if __name__ == '__main__':
     # %%
     Itot = np.zeros([0, 12])
     for tr in tr_list:
+        pass
         I_integrated = integrate_traj(tr, ne0, Te0, sigmaEff12_e_interp,
                                       sigmaEff23_e_interp)
         Itot = np.vstack([Itot, I_integrated[np.newaxis, :]])
@@ -221,7 +222,7 @@ if __name__ == '__main__':
     # get A2 and E lists
     Elist = np.array([tr.Ebeam for tr in tr_list])
     Elist = np.unique(Elist)
-    A2list = np.array([tr.U[0] for tr in tr_list])
+    A2list = np.array([tr.U['A2'] for tr in tr_list])
     A2list = np.unique(A2list)
 
     # %% plot results
@@ -237,7 +238,7 @@ if __name__ == '__main__':
 
     for tr in tr_list:
         if tr.Ebeam == E:
-            A2list1.append(tr.U[0])
+            A2list1.append(tr.U['A2'])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=False)
             # plot secondary
@@ -304,9 +305,8 @@ if __name__ == '__main__':
                      norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
                      c=c,
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
-    plt.colorbar(sc)
+                     marker=marker_E)
+    plt.colorbar(sc, label=r'$I_{det} / I_0$')
 
     # %% plot grid of angles
     angles = np.full((Itot.shape[0], 2), np.nan)
@@ -328,8 +328,7 @@ if __name__ == '__main__':
                      linestyle=linestyle_E,
                      c=angles[:, 0],
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
+                     marker=marker_E)
     plt.colorbar(sc, ax=ax1, label=r'$\alpha (deg)$')
 
     # plot grid with beta coloring
@@ -337,8 +336,7 @@ if __name__ == '__main__':
                      linestyle=linestyle_E,
                      c=angles[:, 1],
                      cmap='jet',
-                     marker=marker_E,
-                     label=str(int(Elist[i_E]))+' keV')
+                     marker=marker_E)
     plt.colorbar(sc, ax=ax2, label=r'$\beta (deg)$')
 
     # %% plot ne and Te profiles
