@@ -46,7 +46,7 @@ def define_geometry(analyzer=1):
     # distance from the injection port to the Alpha2 plates
     dist_A2 = 0.4  # [m]
     # distance from Alpha2 plates to the Beta2 plates
-    dist_B2 = 0.3  # [m]
+    dist_B2 = 0.4  # [m]
     # distance from Beta2 plates to the initial point of the traj [m]
     dist_r0 = 0.2
 
@@ -60,7 +60,7 @@ def define_geometry(analyzer=1):
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
         xaim = 2.6  # 2.5
-        yaim = -0.25
+        yaim = -0.15  # -0.25
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
