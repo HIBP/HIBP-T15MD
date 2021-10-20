@@ -74,6 +74,7 @@ class Traj():
         self.dt2 = dt
         self.IsAimXY = False
         self.IsAimZ = False
+        self.fan_ok = False
         self.IntersectGeometry = {'A2': False, 'B2': False, 'chamb': False}
         self.IntersectGeometrySec = {'A3': False, 'B3': False, 'A4': False,
                                      'chamb': False}
@@ -299,6 +300,7 @@ class Traj():
                 n = int(are_lower[-1])
             else:
                 n = int(are_higher[-1])  # find the last one which is higher
+                self.fan_ok = True
         RV_old = np.array([self.Fan[n][0]])
 
         # find secondary, which goes directly into r_aim
@@ -445,6 +447,11 @@ class Plates():
         if segm_poly_intersect(self.edges[0][:4], segment_coords) or \
            segm_poly_intersect(self.edges[1][:4], segment_coords):
             return True
+        # if plates are flared
+        if self.edges.shape[1] > 4:
+            if segm_poly_intersect(self.edges[0][-4:], segment_coords) or \
+               segm_poly_intersect(self.edges[1][-4:], segment_coords):
+                return True
         return False
 
     def plot(self, ax, axes='XY'):
@@ -914,6 +921,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
     print('Target: ' + target)
     r_aim = geom.r_dict[target]
     attempts_opt = 0
+    attempts_fan = 0
     while True:
         tr.U['B2'], tr.dt1, tr.dt2 = UB2, dt, dt
         # pass fan of secondaries
@@ -927,6 +935,11 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
         print('IsAimXY = ', tr.IsAimXY)
         print('IsAimZ = ', tr.IsAimZ)
         if True in tr.IntersectGeometry.values():
+            break
+        if not tr.fan_ok:
+            attempts_fan += 1
+        if attempts_fan > 3:
+            print('Fan of secondaries is not ok')
             break
 
         if optimize:

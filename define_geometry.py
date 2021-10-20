@@ -29,7 +29,7 @@ def define_geometry(analyzer=1):
 
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 20.  # 30.
+    alpha_prim = 34.  # 20.  # 30.
     beta_prim = -10.
     gamma_prim = 0.
     prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),
@@ -44,7 +44,7 @@ def define_geometry(analyzer=1):
     geom.r_dict['port_in'] = np.array([xport_in, yport_in, zport_in])
 
     # distance from the injection port to the Alpha2 plates
-    dist_A2 = 0.4  # [m]
+    dist_A2 = 0.3  # [m]
     # distance from Alpha2 plates to the Beta2 plates
     dist_B2 = 0.4  # [m]
     # distance from Beta2 plates to the initial point of the traj [m]
