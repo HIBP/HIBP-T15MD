@@ -70,12 +70,12 @@ if __name__ == '__main__':
     # define plates geometry
     if plts_name == 'A2':
         beamline = 'prim'
-        length = 0.2  # along X [m]
+        length = 0.35  # along X [m]
         width = 0.1  # along Z [m]
         thick = 0.005  # [m]
         gap = 0.05  # distance between plates along Y [m]
-        alpha_sw = 0.0  # sweep angle [deg] for flared plates
-        l_sw = 0.0  # length of a flared part
+        alpha_sw = 10.0  # sweep angle [deg] for flared plates
+        l_sw = 0.15  # length of a flared part
 
     elif plts_name == 'B2':
         beamline = 'prim'

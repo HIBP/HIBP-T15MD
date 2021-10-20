@@ -29,7 +29,7 @@ def define_geometry(analyzer=1):
 
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
-    alpha_prim = 30.  # 20.
+    alpha_prim = 20.  # 30.
     beta_prim = -10.
     gamma_prim = 0.
     prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),

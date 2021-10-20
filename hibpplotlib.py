@@ -460,7 +460,7 @@ def plot_geometry(ax, TF_coil_filename='TFCoil.dat',
 
     # get T-15 camera and plasma contours
     camera = np.loadtxt(camera_data_filename)/1000
-    ax.plot(camera[:, 0] + major_radius, camera[:, 1], color='tab:blue')
+    ax.plot(camera[:, 0], camera[:, 1], color='tab:blue')
 
     # plot first wall
     in_fw = np.loadtxt('infw.txt') / 1000  # [m]
