@@ -797,7 +797,6 @@ def plot_grid(traj_list, geom, Btor, Ipl, onlyE=False,
 
 # %%
 def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
-                   linestyle_A2='--', linestyle_E='-',
                    marker_E='p'):
     '''
     plot detector grids colored as A3 and B3 voltages
@@ -851,15 +850,13 @@ def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
 
     # plot grid with A3 coloring
     sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
-                     linestyle=linestyle_E,
                      c=A3B3list[:, 0],
                      cmap='jet',
                      marker=marker_E)
     plt.colorbar(sc, ax=ax1, label='A3, kV')
 
-    # plot grid with beta coloring
+    # plot grid with B3 coloring
     sc = ax2.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
-                     linestyle=linestyle_E,
                      c=A3B3list[:, 1],
                      cmap='jet',
                      marker=marker_E)

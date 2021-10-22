@@ -12,6 +12,7 @@ import hibpplotlib as hbplot
 import define_geometry as defgeom
 import copy
 import time
+import sys
 
 # %% set up main parameters
 # choose analyzer number
@@ -30,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 280., 280., 20.
+Emin, Emax, dEbeam = 340., 380., 20.
 
 # set flags
 optimizeB2 = True
@@ -40,7 +41,7 @@ pass2AN = False
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3, 30., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -119,7 +120,6 @@ for Ebeam in Ebeam_range:
         exp_voltages = np.loadtxt(input_fname)
         indexes = np.linspace(1, exp_voltages.shape[0]-1,
                               NA2_points, dtype=int)
-
     if optimizeB2:
         optimizeA3B3 = True
         target = 'aim'
@@ -184,7 +184,8 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
