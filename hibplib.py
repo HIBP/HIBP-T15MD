@@ -449,8 +449,11 @@ class Plates():
             return True
         # if plates are flared
         if self.edges.shape[1] > 4:
-            if segm_poly_intersect(self.edges[0][-4:], segment_coords) or \
-               segm_poly_intersect(self.edges[1][-4:], segment_coords):
+            # for flared plates the sequence of vertices is
+            # [UP1sw, UP1, UP2, UP2sw, UP3, UP4]
+            point_ind = [1, 4, 5, 2]
+            if segm_poly_intersect(self.edges[0][point_ind], segment_coords) or \
+               segm_poly_intersect(self.edges[1][point_ind], segment_coords):
                 return True
         return False
 
