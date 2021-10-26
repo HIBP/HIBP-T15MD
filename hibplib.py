@@ -941,7 +941,7 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
             break
         if not tr.fan_ok:
             attempts_fan += 1
-        if attempts_fan > 3:
+        if attempts_fan > 3 or len(tr.Fan) == 0:
             print('Fan of secondaries is not ok')
             break
 
