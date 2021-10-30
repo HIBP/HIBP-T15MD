@@ -60,7 +60,7 @@ def define_geometry(analyzer=1):
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
         xaim = 2.6  # 2.5
-        yaim = 0.0  # -0.1  # -0.15  # -0.25
+        yaim = -0.2  # 0.0  # -0.15  # -0.25
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
