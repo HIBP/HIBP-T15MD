@@ -1899,7 +1899,7 @@ def save_traj_list(traj_list, Btor, Ipl, r_aim, dirname='output'):
     '''
 
     if len(traj_list) == 0:
-        print('traj_list empty!')
+        print('traj_list empty! nothing to save')
         return
 
     Ebeam_list = []

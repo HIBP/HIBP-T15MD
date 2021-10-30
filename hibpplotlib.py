@@ -705,6 +705,7 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
                   .format(Ebeam, UA2_min,  UA2_max, Btor, Ipl))
     plt.show()
 
+
 # %%
 def plot_grid(traj_list, geom, Btor, Ipl, onlyE=False,
               linestyle_A2='--', linestyle_E='-',
@@ -822,9 +823,7 @@ def plot_grid_a3b3(traj_list, geom, Btor, Ipl,
         A3B3list[k, 0] = tr.U['A3']  # choose A3
         A3B3list[k, 1] = tr.U['B3']  # choose B3
 
-    N_A2 = A2list.shape[0]
     N_E = Elist.shape[0]
-    A2_grid = np.full((N_E, 3, N_A2), np.nan)
 
     # find UA2 max and min
     UA2_max = np.amax(np.array(A2list))
@@ -1167,7 +1166,7 @@ def plot_lam(traj_list, config, rho_interp, Ebeam='all', slits=range(5)):
         equal_E_list = np.unique(equal_E_list)
     else:
         equal_E_list = np.array([float(Ebeam)])
-    
+
     for Eb in equal_E_list:
         for i_slit in slits:
             UA2_list = []
@@ -1184,7 +1183,8 @@ def plot_lam(traj_list, config, rho_interp, Ebeam='all', slits=range(5)):
     ax1.legend()
     ax2.legend()
     plt.show()
-        
+
+
 # %%
 def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
                azim=0.0, elev=0.0,

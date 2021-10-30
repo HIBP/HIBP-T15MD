@@ -85,14 +85,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-try:
-    hb.read_plates('sec', geomT15, E)
-    # add diafragm for A3 plates to Geometry
-    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-    print('\n Secondary Beamline loaded')
-except FileNotFoundError:
-    print('\n Secondary Beamline NOT FOUND')
+# try:
+#     hb.read_plates('sec', geomT15, E)
+#     # add diafragm for A3 plates to Geometry
+#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+#     print('\n Secondary Beamline loaded')
+# except FileNotFoundError:
+#     print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():
@@ -171,7 +171,7 @@ for Ebeam in Ebeam_range:
             traj_list_B2.append(tr)
             print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
         else:
-            print('NOT saved, sth wrong')
+            print('NOT saved, sth is wrong')
         # traj_list_B2.append(tr)
 
 t2 = time.time()
