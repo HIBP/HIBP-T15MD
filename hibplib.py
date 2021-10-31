@@ -191,12 +191,9 @@ class Traj():
             # find last point of the secondary trajectory
             if (RV_new[0, 0] > 2.5) and (RV_new[0, 1] < 1.5):
                 # intersection with the stop plane:
-                planeNormal = stop_plane_n
-                planePoint = r_aim
-                rayDirection = RV_new[0, :3] - RV_old[0, :3]
-                rayPoint = RV_new[0, :3]
-                r_intersect = line_plane_intersect(planeNormal, planePoint,
-                                                   rayDirection, rayPoint)
+                r_intersect = line_plane_intersect(stop_plane_n, r_aim,
+                                                   RV_new[0, :3]-RV_old[0, :3],
+                                                   RV_new[0, :3])
                 # check if r_intersect is between RV_old and RV_new:
                 if is_between(RV_old[0, :3], RV_new[0, :3], r_intersect):
                     RV_new[0, :3] = r_intersect
@@ -796,7 +793,7 @@ def add_diafragm(geom, plts_name, diaf_name, diaf_width=0.1):
 
 
 # %%
-@numba.jit()
+@numba.njit()
 def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
     '''
     calculate vector based on its length and angles
@@ -808,7 +805,7 @@ def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
     return np.array([x, y, z])
 
 
-@numba.jit()
+@numba.njit()
 def calc_angles(vector):
     '''
     calculate alpha and beta angles based on vector coords
@@ -837,17 +834,17 @@ def get_index(axes):
 # %% Runge-Kutta
 # define equations of movement:
 
-@numba.jit()
+@numba.njit()
 def f(k, E, V, B):
     return k*(E + np.cross(V, B))
 
 
-@numba.jit()
+@numba.njit()
 def g(V):
     return V
 
 
-@numba.jit()
+@numba.njit()
 def runge_kutt(k, RV, dt, E, B):
     '''
     Calculate one step using Runge-Kutta algorithm
@@ -1305,7 +1302,7 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
 
 
 # %%
-@numba.jit()
+@numba.njit()
 def translate(input_array, xyz):
     '''
     move the vector in space
@@ -1317,7 +1314,7 @@ def translate(input_array, xyz):
     return input_array
 
 
-@numba.jit()
+@numba.njit()
 def rot_mx(axis=(1, 0, 0), deg=0):
     '''
     function calculates rotation matrix
@@ -1336,7 +1333,7 @@ def rot_mx(axis=(1, 0, 0), deg=0):
     return R
 
 
-@numba.jit()
+@numba.njit()
 def rotate(input_array, axis=(1, 0, 0), deg=0.):
     '''
     rotate vector around given axis by deg [degrees]
@@ -1349,7 +1346,7 @@ def rotate(input_array, axis=(1, 0, 0), deg=0.):
     return input_array
 
 
-@numba.jit()
+@numba.njit()
 def rotate3(input_array, plates_angles, beamline_angles, inverse=False):
     '''
     rotate vector in 3 dimentions
