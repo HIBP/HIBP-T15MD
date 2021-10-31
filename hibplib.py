@@ -1368,6 +1368,7 @@ def rotate3(input_array, plates_angles, beamline_angles, inverse=False):
 
 
 # %% Intersection check functions
+@numba.njit()
 def line_plane_intersect(planeNormal, planePoint, rayDirection,
                          rayPoint, eps=1e-6):
     '''
@@ -1384,6 +1385,7 @@ def line_plane_intersect(planeNormal, planePoint, rayDirection,
         return Psi
 
 
+@numba.njit()
 def is_between(A, B, C, eps=1e-6):
     '''
     function returns True if point C is on the segment AB (between A and B)
@@ -1401,22 +1403,26 @@ def is_between(A, B, C, eps=1e-6):
     return True
 
 
+@numba.njit()
+def order(A, B, C):
+    '''
+    if counterclockwise return True
+    if clockwise return False
+    '''
+    return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+
+
+@numba.njit()
 def is_intersect(A, B, C, D):  # doesn't work with collinear case
     '''
     function returns true if line segments AB and CD intersect
     '''
-    def order(A, B, C):
-        '''
-        if counterclockwise return True
-        if clockwise return False
-        '''
-        return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
-
     # Return true if line segments AB and CD intersect
     return order(A, C, D) != order(B, C, D) and \
         order(A, B, C) != order(A, B, D)
 
 
+@numba.njit()
 def segm_intersect(A, B, C, D):
     '''
     function calculates intersection point between vectors AB and CD
@@ -1427,6 +1433,7 @@ def segm_intersect(A, B, C, D):
     return A + AB * (np.cross(CD, CA) / np.cross(AB, CD))
 
 
+@numba.njit()
 def segm_poly_intersect(polygon_coords, segment_coords):
     '''
     check segment and polygon intersection
@@ -1434,7 +1441,7 @@ def segm_poly_intersect(polygon_coords, segment_coords):
     polygon_normal = np.cross(polygon_coords[2, 0:3]-polygon_coords[0, 0:3],
                               polygon_coords[1, 0:3]-polygon_coords[0, 0:3])
     polygon_normal = polygon_normal/np.linalg.norm(polygon_normal)
-
+    # find the intersection point between polygon plane and segment line
     intersect_coords = line_plane_intersect(polygon_normal,
                                             polygon_coords[2, 0:3],
                                             segment_coords[1, 0:3] -
@@ -1442,14 +1449,41 @@ def segm_poly_intersect(polygon_coords, segment_coords):
                                             segment_coords[0, 0:3])
     if np.isnan(intersect_coords).any():
         return False
+    if not is_between(segment_coords[0, 0:3], segment_coords[1, 0:3],
+                      intersect_coords):
+        return False
+    # go to 2D, exclude the maximum coordinate
+    i = np.argmax(np.abs(polygon_normal))
+    inds = np.array([0, 1, 2])  # indexes for 3d corrds
+    inds_flat = np.where(inds != i)[0]
+    polygon_coords_flat = polygon_coords[:, inds_flat]
+    intersect_coords_flat = intersect_coords[inds_flat]
+    # define a rectange which contains the flat poly
+    xmin = np.min(polygon_coords_flat[:, 0])
+    xmax = np.max(polygon_coords_flat[:, 0])
+    ymin = np.min(polygon_coords_flat[:, 1])
+    ymax = np.max(polygon_coords_flat[:, 1])
+    xi, yi = intersect_coords_flat
+    # simple check if a point is inside a rectangle
+    if (xi < xmin or xi > xmax or yi < ymin or yi > ymax):
+        return False
+    # ray casting algorithm
+    # set up a point outside the flat poly
+    point_out = np.array([xmin - 0.01, ymin - 0.01])
+    # calculate the number of intersections between ray and the poly sides
+    intersections = 0
+    for i in range(polygon_coords_flat.shape[0]):
+        if is_intersect(point_out, intersect_coords_flat,
+                        polygon_coords_flat[i-1], polygon_coords_flat[i]):
+            intersections += 1
+    # if the number of intersections is odd then the point is inside
+    if intersections % 2 == 0:
+        return False
     else:
-        i = np.argmax(abs(polygon_normal))
-        polygon_coords_flat = np.delete(polygon_coords, i, 1)
-        intersect_coords_flat = np.delete(intersect_coords, i, 0)
-        p = path.Path(polygon_coords_flat)
-        return p.contains_point(intersect_coords_flat) and \
-            is_between(segment_coords[0, 0:3], segment_coords[1, 0:3],
-                       intersect_coords)
+        return True
+
+    # p = path.Path(polygon_coords_flat)
+    # return p.contains_point(intersect_coords_flat)
 
     # check projections on XY and XZ planes
     # pXY = path.Path(polygon_coords[:, [0, 1]])  # XY plane
