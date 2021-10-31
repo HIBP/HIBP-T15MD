@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 340., 380., 20.
+Emin, Emax, dEbeam = 160., 160., 20.
 
 # set flags
 optimizeB2 = True
@@ -45,7 +45,7 @@ UA2min, UA2max, dUA2 = -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
-UB2, dUB2 = 0.0, 7.  # [kV], [kV/m]
+UB2, dUB2 = 0.0, 10.  # [kV], [kV/m]
 
 # B3 voltages
 UB3, dUB3 = 0.0, 10  # [kV], [kV/m]
