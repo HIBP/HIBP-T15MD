@@ -59,19 +59,19 @@ class Traj():
         self.beta = beta
         self.U = U
         self.RV0 = np.array([np.hstack((r0, V0))])  # initial condition
-
-        self.RV_prim = self.RV0  # array with r,V for the whole trajectory
+        # array with r,V for the primary trajectory
+        self.RV_prim = self.RV0
         self.tag_prim = [1]
-
+        # array with r,V for the secondary trajectory
         self.RV_sec = np.array([[]])
         self.tag_sec = [2]
-
         # list to contain RV of the whole fan:
         self.Fan = []
         # time step for primary orbit:
         self.dt1 = dt
         # time step for secondary orbit:
         self.dt2 = dt
+        # flags
         self.IsAimXY = False
         self.IsAimZ = False
         self.fan_ok = False
@@ -320,10 +320,16 @@ class Traj():
             # check XY flag
             if self.IsAimXY:
                 # insert RV_new into primary traj
-                index = np.nanargmin(np.linalg.norm(self.RV_prim[:, :3] -
-                                                    RV_new[0, :3], axis=1))
-                self.RV_prim = np.insert(self.RV_prim, index+1, RV_new, axis=0)
-                self.tag_prim = np.insert(self.tag_prim, index+1, 11, axis=0)
+                # find the index of the point in primary traj closest to RV_new
+                ind = np.nanargmin(np.linalg.norm(self.RV_prim[:, :3] -
+                                                  RV_new[0, :3], axis=1))
+                if is_between(self.RV_prim[ind, :3],
+                              self.RV_prim[ind+1, :3], RV_new[0, :3], eps=1e-4):
+                    i2insert = ind+1
+                else:
+                    i2insert = ind
+                self.RV_prim = np.insert(self.RV_prim, i2insert, RV_new, axis=0)
+                self.tag_prim = np.insert(self.tag_prim, i2insert, 11, axis=0)
                 break
             # check if the new secondary traj is lower than r_aim
             if (not twisted_fan and
