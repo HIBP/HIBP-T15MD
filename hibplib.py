@@ -140,7 +140,7 @@ class Traj():
         self.tag_prim = tag_column
 
     def pass_sec(self, RV0, r_aim, E_interp, B_interp, geom,
-                 stop_plane_n=np.array([1, 0, 0]), tmax=5e-5,
+                 stop_plane_n=np.array([1., 0., 0.]), tmax=5e-5,
                  eps_xy=1e-3, eps_z=1e-3):
         '''
         passing secondary trajectory from initial point RV0 to point r_aim
@@ -220,7 +220,7 @@ class Traj():
         self.tag_sec = tag_column
 
     def pass_fan(self, r_aim, E_interp, B_interp, geom,
-                 stop_plane_n=np.array([1, 0, 0]), eps_xy=1e-3, eps_z=1e-3,
+                 stop_plane_n=np.array([1., 0., 0.]), eps_xy=1e-3, eps_z=1e-3,
                  no_intersect=False, no_out_of_bounds=False):
         '''
         passing fan from initial point self.RV0
@@ -257,7 +257,7 @@ class Traj():
         self.Fan = list_sec
 
     def pass_to_target(self, r_aim, E_interp, B_interp, geom,
-                       stop_plane_n=np.array([1, 0, 0]),
+                       stop_plane_n=np.array([1., 0., 0.]),
                        eps_xy=1e-3, eps_z=1e-3, dt_min=1e-10,
                        no_intersect=False, no_out_of_bounds=False):
         '''
@@ -1114,7 +1114,7 @@ def optimize_A4(tr, geom, UA4, dUA4, E, B, dt, eps_alpha=0.1):
 
 # %%
 def calc_zones(tr, dt, E, B, geom, slits=[2], timestep_divider=5,
-               stop_plane_n=np.array([1, 0, 0]), eps_xy=1e-3, eps_z=1,
+               stop_plane_n=np.array([1., 0., 0.]), eps_xy=1e-3, eps_z=1,
                dt_min=1e-11, no_intersect=True, no_out_of_bounds=True):
     '''
     calculate ionization zones
