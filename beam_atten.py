@@ -164,11 +164,9 @@ if __name__ == '__main__':
     # plt.close('all')
 
     # %%
-
     kB = 1.38064852e-23  # Boltzman [J/K]
     m_e = 9.10938356e-31  # electron mass [kg]
     m_p = 1.6726219e-27  # proton mass [kg]
-    E = 240.0  # beam energy [keV]
 
     geom = geomT15
     r_plasma = 0.65  # geom.r_plasma
@@ -182,10 +180,11 @@ if __name__ == '__main__':
     Te0 = 15.0  # [keV]
 
     # %% import trajectories
-    tr_list = copy.deepcopy(traj_list_passed)
+    # tr_list = copy.deepcopy(traj_list_passed)
     # tr_list = copy.deepcopy(traj_list_a3b3)
 #    filename = 'B{}_I{}//E80-320_UA2-20-80_alpha30_beta0_x250y-20z0.pkl'.format(str(int(Btor)), str(int(Ipl)))
-#    traj_list = hb.ReadTrajList(filename, dirname='output')
+    filename = 'B1_I1/E100-320_UA23-33_alpha34.0_beta-10.0_x260y-5z1.pkl'
+    tr_list = hb.read_traj_list(filename, dirname='output')
 
     # %% LOAD IONIZATION RATES
     if tr_list[0].m/m_p > 200.:
@@ -194,12 +193,12 @@ if __name__ == '__main__':
         ion = 'Cs'
 
     # <sigma*v> for Ion+ + e -> Ion2+
-    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
         '+_e_' + ion + '2+.txt'
     sigmaV12_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
     # <sigma*v> for Ion2+ + e -> Ion3+
-    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
         '2+_e_' + ion + '3+.txt'
     sigmaV23_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
@@ -227,17 +226,18 @@ if __name__ == '__main__':
 
     # %% plot results
     # plot scan
+    Eb = 240.0  # beam energy [keV]
     fig, ax1 = plt.subplots()
 
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=False)
+    geom.plot(ax1, axes='XY', plot_sep=False)
 
     A2list1 = []
 
     for tr in tr_list:
-        if tr.Ebeam == E:
+        if tr.Ebeam == Eb:
             A2list1.append(tr.U['A2'])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=False)
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=True)
+    geom.plot(ax1, axes='XY', plot_sep=True)
 
     N_A2 = A2list.shape[0]
     N_E = Elist.shape[0]
@@ -317,8 +317,8 @@ if __name__ == '__main__':
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=True)
-    geom.plot_geom(ax2, axes='XY', plot_sep=True)
+    geom.plot(ax1, axes='XY', plot_sep=True)
+    geom.plot(ax2, axes='XY', plot_sep=True)
 
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
     hbplot.set_axes_param(ax2, 'X (m)', 'Y (m)')

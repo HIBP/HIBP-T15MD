@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 160., 160., 20.
+Emin, Emax, dEbeam = 120., 120., 20.
 
 # set flags
 optimizeB2 = True
@@ -85,14 +85,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-# try:
-#     hb.read_plates('sec', geomT15, E)
-#     # add diafragm for A3 plates to Geometry
-#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-#     print('\n Secondary Beamline loaded')
-# except FileNotFoundError:
-#     print('\n Secondary Beamline NOT FOUND')
+try:
+    hb.read_plates('sec', geomT15, E)
+    # add diafragm for A3 plates to Geometry
+    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+    print('\n Secondary Beamline loaded')
+except FileNotFoundError:
+    print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():
@@ -184,8 +184,8 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-sys.exit()
+# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+# sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,

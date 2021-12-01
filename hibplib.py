@@ -1013,6 +1013,10 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
         print('UA3 NEW = {:.2f} kV'.format(UA3))
         n_stepsA3 += 1
 
+        if np.isnan(UA3):
+            print('ALPHA3 failed, nan value in UA3')
+            vltg_fail = True
+            return tr, vltg_fail
         if abs(UA3) > UA3_max:
             print('ALPHA3 failed, voltage too high')
             vltg_fail = True

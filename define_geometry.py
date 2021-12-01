@@ -60,21 +60,21 @@ def define_geometry(analyzer=1):
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
         xaim = 2.6  # 2.5
-        yaim = -0.2  # 0.0  # -0.15  # -0.25
+        yaim = -0.1  # 0.0  # -0.15  # -0.25
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
-        beta_sec = 15.  # 20.
-        gamma_sec = -20.
+        beta_sec = 15.
+        gamma_sec = 0.  # -20.
         A3_angles = np.array([alpha_sec, beta_sec, gamma_sec])
     elif analyzer == 2:
         xaim = 2.6  # 2.5
-        yaim = -0.15
+        yaim = 0.0  # 0.15
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 35.  # 5.
-        beta_sec = 25.  # 20.
-        gamma_sec = -20.
+        beta_sec = 20.  # 25.
+        gamma_sec = 0.  # -20.
         # in the second line U_lower_plate=0
         A3_angles = np.array([alpha_sec, beta_sec, gamma_sec+180.])
     r_aim = np.array([xaim, yaim, zaim])
