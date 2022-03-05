@@ -176,14 +176,15 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 15  # 1.5  # [x10^19 m-3]
-    Te0 = 15.0  # [keV]
+    ne0 = 5  # 1.5  # [x10^19 m-3]
+    Te0 = 3.0  # [keV]
 
     # %% import trajectories
     # tr_list = copy.deepcopy(traj_list_passed)
     # tr_list = copy.deepcopy(traj_list_a3b3)
 #    filename = 'B{}_I{}//E80-320_UA2-20-80_alpha30_beta0_x250y-20z0.pkl'.format(str(int(Btor)), str(int(Ipl)))
-    filename = 'B1_I1/E100-320_UA23-33_alpha34.0_beta-10.0_x260y-5z1.pkl'
+    # filename = 'B1_I1/E100-300_UA26-33_alpha34.0_beta-10.0_x260y0z1.pkl'
+    filename = 'B1_I1/E100-340_UA23-33_alpha34.0_beta-10.0_x260y-10z1.pkl'
     tr_list = hb.read_traj_list(filename, dirname='output')
 
     # %% LOAD IONIZATION RATES
@@ -193,12 +194,12 @@ if __name__ == '__main__':
         ion = 'Cs'
 
     # <sigma*v> for Ion+ + e -> Ion2+
-    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
         '+_e_' + ion + '2+.txt'
     sigmaV12_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
     # <sigma*v> for Ion2+ + e -> Ion3+
-    filename = 'D:\\Philipp\\Cross_sections\\' + ion + '\\rate' + ion + \
+    filename = 'D:\\NRCKI\\Cross_sections\\' + ion + '\\rate' + ion + \
         '2+_e_' + ion + '3+.txt'
     sigmaV23_e = np.loadtxt(filename)  # [0] Te [eV] [1] <sigma*v> [m^3/s]
 
@@ -302,7 +303,8 @@ if __name__ == '__main__':
 
     sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
                      linestyle=linestyle_E,
-                     norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
+                     # norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
+                     norm=colors.LogNorm(vmin=1e-5, vmax=c.max()),
                      c=c,
                      cmap='jet',
                      marker=marker_E)

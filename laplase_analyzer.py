@@ -47,7 +47,7 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'A2'
+    plts_name = 'B3'
     save_data = True
 
     # define voltages [Volts]
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     elif plts_name == 'B3':
         beamline = 'sec'
         length = 0.4  # along X [m]
-        width = 0.1  # along Z [m]
+        width = 0.15  # along Z [m]
         thick = 0.005  # [m]
         gap = 0.1  # distance between plates along Y [m]
         gamma = -90.

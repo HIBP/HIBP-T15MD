@@ -64,7 +64,7 @@ def define_geometry(analyzer=1):
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
-        beta_sec = 15.
+        beta_sec = 20.
         gamma_sec = 0.  # -20.
         A3_angles = np.array([alpha_sec, beta_sec, gamma_sec])
     elif analyzer == 2:
@@ -72,7 +72,7 @@ def define_geometry(analyzer=1):
         yaim = 0.0  # 0.15
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
-        alpha_sec = 35.  # 5.
+        alpha_sec = 30.  # 35.  # 5.
         beta_sec = 20.  # 25.
         gamma_sec = 0.  # -20.
         # in the second line U_lower_plate=0

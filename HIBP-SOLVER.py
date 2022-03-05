@@ -31,17 +31,17 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 120., 120., 20.
+Emin, Emax, dEbeam = 240., 240., 20.
 
 # set flags
 optimizeB2 = True
-optimizeA3B3 = False
+optimizeA3B3 = True
 calculate_zones = False
-pass2AN = False
+pass2AN = True
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -3., 33., 3.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -67,13 +67,6 @@ alpha_aim = 0.
 beta_aim = 0.
 stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim,
                               direction=(1, 1, 1))
-
-# %% Load Magnetic Field
-pf_coils = hb.import_PFcoils('PFCoils.dat')
-PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
-if 'B' not in locals():
-    dirname = 'magfield'
-    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
 
 # %% Load Electric Field
 E = {}
@@ -104,6 +97,13 @@ if 'an' in geomT15.plates_dict.keys():
 else:
     G = 1.
     print('\nNO Analyzer')
+
+# %% Load Magnetic Field
+pf_coils = hb.import_PFcoils('PFCoils.dat')
+PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
+if 'B' not in locals():
+    dirname = 'magfield'
+    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
 
 # %% Optimize Primary Beamline
 # define list of trajectories that hit r_aim
@@ -195,7 +195,7 @@ hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
 
 hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
                  full_primary=False, plot_analyzer=True,
-                 plot_det_line=False, subplots_vertical=True, scale=4)
+                 plot_det_line=True, subplots_vertical=True, scale=4)
 # hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
 
