@@ -8,7 +8,7 @@ primary beamline (B2 plates) and secondary beamline (A3, B3, A4 plates)
 
 import numpy as np
 import hibplib as hb
-import hibpplotlib as hbplot
+import hibpplotlib as hbp
 import define_geometry as defgeom
 import copy
 import time
@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 160., 160., 20.
+Emin, Emax, dEbeam = 120., 120., 20.
 
 # set flags
 optimizeB2 = True
@@ -184,8 +184,8 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-sys.exit()
+# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+# sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
