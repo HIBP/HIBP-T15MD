@@ -178,8 +178,8 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 15  # 1.5  # [x10^19 m-3]
-    Te0 = 15.0  # [keV]
+    ne0 = 8.0  #5.0  # 1.5  # 15  # [x10^19 m-3]
+    Te0 = 6.0  #2.0  # 1.0  # 15.0  # [keV]
 
     # %% import trajectories
     tr_list = copy.deepcopy(traj_list_passed)
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=False)
+    geom.plot(ax1, axes='XY', plot_sep=False)
 
     A2list1 = []
 
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=True)
+    geom.plot(ax1, axes='XY', plot_sep=True)
 
     N_A2 = A2list.shape[0]
     N_E = Elist.shape[0]
@@ -302,7 +302,8 @@ if __name__ == '__main__':
 
     sc = ax1.scatter(E_grid[:, 0], E_grid[:, 1], s=80,
                      linestyle=linestyle_E,
-                     norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
+                     # norm=colors.LogNorm(vmin=c.min(), vmax=c.max()),
+                     norm=colors.LogNorm(vmin=1e-5, vmax=c.max()),
                      c=c,
                      cmap='jet',
                      marker=marker_E)
@@ -317,8 +318,8 @@ if __name__ == '__main__':
 
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, sharex=True)
     # plot geometry
-    geom.plot_geom(ax1, axes='XY', plot_sep=True)
-    geom.plot_geom(ax2, axes='XY', plot_sep=True)
+    geom.plot(ax1, axes='XY', plot_sep=True)
+    geom.plot(ax2, axes='XY', plot_sep=True)
 
     hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
     hbplot.set_axes_param(ax2, 'X (m)', 'Y (m)')
