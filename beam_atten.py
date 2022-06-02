@@ -176,8 +176,8 @@ if __name__ == '__main__':
     Btor = 1.0  # [T]
     Ipl = 1.0  # [MA]
 
-    ne0 = 5  # 1.5  # [x10^19 m-3]
-    Te0 = 3.0  # [keV]
+    ne0 = 8.0  #5.0  # 1.5  # 15  # [x10^19 m-3]
+    Te0 = 6.0  #2.0  # 1.0  # 15.0  # [keV]
 
     # %% import trajectories
     # tr_list = copy.deepcopy(traj_list_passed)

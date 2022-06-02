@@ -47,8 +47,8 @@ def pde_solve_full(U, Uupper_plate, Ulower_plate, upper_plate_flag,
 # %%
 if __name__ == '__main__':
 
-    plts_name = 'B3'
-    save_data = True
+    plts_name = 'A2'
+    save_data = False
 
     # define voltages [Volts]
     Uupper_plate = 0.
