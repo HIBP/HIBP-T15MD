@@ -8,7 +8,7 @@ primary beamline (B2 plates) and secondary beamline (A3, B3, A4 plates)
 
 import numpy as np
 import hibplib as hb
-import hibpplotlib as hbp
+import hibpplotlib as hbplot
 import define_geometry as defgeom
 import copy
 import time
