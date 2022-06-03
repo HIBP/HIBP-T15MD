@@ -159,7 +159,6 @@ for Ebeam in Ebeam_range:
         # optimize B2 voltage
         tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
                             target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
-        UB2 = tr.U['B2']
         # check geometry intersection
         if True in tr.IntersectGeometry.values():
             print('NOT saved, primary intersected geometry')
@@ -167,6 +166,9 @@ for Ebeam in Ebeam_range:
         if True in tr.IntersectGeometrySec.values():
             print('NOT saved, secondary intersected geometry')
             continue
+        # if no intersections, upldate UB2 values
+        UB2 = tr.U['B2']
+        # check aim
         if tr.IsAimXY and tr.IsAimZ:
             traj_list_B2.append(tr)
             print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))

@@ -706,13 +706,14 @@ class Geometry():
         '''
         intersect_flag = False
         # do not check intersection when particle is far from first wall
-        if (point1[1] > -0.46 and point2[1] > -0.46):
+        if (point1[1] > -0.35 and point2[1] > -0.35):
             return intersect_flag
         # check intersection with first wall
         for i in np.arange(4, len(self.out_fw), 2):
             intersect_flag = intersect_flag or \
                 is_intersect(point1[0:2], point2[0:2],
                              self.out_fw[i], self.out_fw[i+1])
+        return intersect_flag
 
     def check_plates_intersect(self, point1, point2):
         '''
