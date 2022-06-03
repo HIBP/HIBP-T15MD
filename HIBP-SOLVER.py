@@ -45,7 +45,7 @@ UA2min, UA2max, dUA2 = -3., 33., 3.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
-UB2, dUB2 = 0.0, 10.  # [kV], [kV/m]
+UB2, dUB2 = -3.0, 10.  # [kV], [kV/m]
 
 # B3 voltages
 UB3, dUB3 = 0.0, 10  # [kV], [kV/m]
@@ -78,14 +78,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-# try:
-#     hb.read_plates('sec', geomT15, E)
-#     # add diafragm for A3 plates to Geometry
-#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-#     print('\n Secondary Beamline loaded')
-# except FileNotFoundError:
-#     print('\n Secondary Beamline NOT FOUND')
+try:
+    hb.read_plates('sec', geomT15, E)
+    # add diafragm for A3 plates to Geometry
+    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+    print('\n Secondary Beamline loaded')
+except FileNotFoundError:
+    print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():

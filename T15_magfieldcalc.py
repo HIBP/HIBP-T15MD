@@ -9,6 +9,24 @@ import time
 import hibplib as hb
 import hibpplotlib as hbplot
 import os
+import sys
+
+
+# %% define a fuction to calculate Biot-Savart IdL * r/|r|^3
+def calc_Bpoint(r, IdL, r1):
+    r2 = r - r1
+    r25 = np.linalg.norm(r2, axis=1)
+    # create a mask to exclude points close to wire
+    mask = (r25 < EPS_WIRE)  # 0.6 is ok for plasma current field
+    r25 = r25**3
+    r3 = r2 / r25[:, np.newaxis]
+
+    cr = np.cross(IdL, r3)
+    cr[mask] = [0., 0., 0.]
+
+    # claculate sum of contributions from all current elements
+    s = np.sum(cr, axis=0)
+    return s
 
 
 # %% define a fuction to calculate Biot-Savart law
@@ -46,23 +64,12 @@ def biot_savart(points, wires):
     # now we have all segment vectors multiplied by the flowing current in IdL
     # and all vectors to the central points of the segments in r1
 
-    def calc_Bpoint(r, IdL, r1):
-        r2 = r - r1
-        r25 = np.linalg.norm(r2, axis=1)**3
-        r3 = r2 / r25[:, np.newaxis]
-
-        cr = np.cross(IdL, r3)
-
-        # claculate sum of contributions from all current elements
-        s = np.sum(cr, axis=0)
-        return s
-
     # calculate vector B*1e7 for each point in space
     t1 = time.time()
 
     # calculate B at each point r
     # single processor
-#    B = np.array([calc_Bpoint(r, IdL, r1) * 1e-7 for r in points])
+    # B = np.array([calc_Bpoint(r, IdL, r1) * 1e-7 for r in points])
 
     # multiprocessing
     n_workers = mp.cpu_count() - 1
@@ -314,7 +321,7 @@ def save_B_geometry(corner1, corner2, res, dirname='magfield'):
 # %%
 if __name__ == '__main__':
 
-    save_data = True
+    save_data = False
 
     if input('Recalculate magnetic fields [y/n]? ') == 'y':
         try:
@@ -332,9 +339,11 @@ if __name__ == '__main__':
     # xmin ymin zmin [m]
     volume_corner1 = (1.1, -1.1, -1.2)
     # volume_corner1 = (0.5, -3.0, -0.1)
+    # volume_corner1 = (0.9, -3.0, -0.02)
     # xmax ymax zmax [m]
     volume_corner2 = (5.4+resolution, 2.1+resolution, 0.5+resolution)
     # volume_corner2 = (3.5+resolution, 2.5+resolution, 0.1+resolution)
+    # volume_corner2 = (3.5+resolution, 2.5+resolution, 0.02+resolution)
 
     # create grid of points
     grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
@@ -350,17 +359,22 @@ if __name__ == '__main__':
           ' volume_corner1 = {} [m]\n'.format(volume_corner1) +
           ' volume_corner2 = {} [m]\n'.format(volume_corner2))
 
-    # Txt with plasma current calculated in Tokameq
+    # calculate plasma current field
+    # *.txt with plasma current calculated in Tokameq
     tokameq_file = '1MA_sn.txt'
+    EPS_WIRE = 0.6  # parameter to make smooth plasma approximation
     B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl, disc_len=disc_len)
+    # sys.exit()
 
-    # calculate B field at given points
+    # calculate toroidal magnetic field
+    EPS_WIRE = 0.05
     B_tor, wires_tor = calc_Btor(points, disc_len=disc_len)
 
+    # calculate poloidal magnetic field
     pf_coils = hb.import_PFcoils('PFCoils.dat')
     B_pol_dict, wires_pol = calc_Bpol(pf_coils, points, disc_len=disc_len)
 
-#        wires = wires_pol + wires_tor + wires_pl
+    # wires = wires_pol + wires_tor + wires_pl
 
     cutoff = 10.0
     Babs_tor = np.linalg.norm(B_tor, axis=1)
@@ -370,7 +384,7 @@ if __name__ == '__main__':
     B_pl[Babs_pl > cutoff] = [np.nan, np.nan, np.nan]
 
 
-# %% summarize magnetic field from all currents
+# %% summarize magnetic field from all coils and plasma
     B_total = B_tor*Btor + B_pl
 
     # get real currents in toroidal coils

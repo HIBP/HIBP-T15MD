@@ -6,7 +6,7 @@ double beamline test GRIDS
 import numpy as np
 import matplotlib.pyplot as plt
 import hibplib as hb
-import hibplotlib as hbplot
+import hibpplotlib as hbplot
 
 
 # %%
@@ -87,6 +87,7 @@ def plot_grid(ax, traj_list, geom, Btor, Ipl, onlyE=False,
 
 # %% calculate for analyzer 1
 analyzer = 1
+dUA3 = abs(dUA3)
 
 runcell('Define Geometry', 'D:/NRCKI/Py/HIBP-T15MD/HIBP-SOLVER.py')
 # Load Electric Field

@@ -675,7 +675,8 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     for tr in traj_list:
         if tr.Ebeam == Ebeam:
             A2list.append(tr.U['A2'])
-            det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
+            if plot_det_line:
+                det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=full_primary)
             tr.plot_prim(ax2, axes='XZ', color='k', full_primary=full_primary)

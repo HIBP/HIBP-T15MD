@@ -6,9 +6,9 @@ double beamline test
 import numpy as np
 import matplotlib.pyplot as plt
 import hibplib as hb
-import hibplotlib as hbplot
+import hibpplotlib as hbplot
 
-Ebeam = 240.
+Ebeam = 100.
 
 # %% calculate for analyzer 1
 analyzer = 1

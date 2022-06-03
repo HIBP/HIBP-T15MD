@@ -121,7 +121,7 @@ class Traj():
 
             if geom.check_chamb_intersect('prim', RV_old[0, 0:3],
                                           RV_new[0, 0:3]):
-                print('Primary intersected chamber')
+                print('Primary intersected chamber entrance')
                 self.IntersectGeometry['chamb'] = True
                 break
 
@@ -131,6 +131,10 @@ class Traj():
                 print('Primary intersected ' + plts_name + ' plates')
                 self.IntersectGeometry[plts_name] = True
                 break
+
+            if geom.check_fw_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
+                print('Primary intersected first wall')
+                break  # stop primary trajectory calculation
 
             RV_old = RV_new
             t = t + dt
@@ -681,7 +685,7 @@ class Geometry():
            (point1[0] < 2.0 and point2[1] < 0.8):
                return intersect_flag
         if beamline == 'prim':
-            # check intersection with chamber entrance and chamber at HFS
+            # check intersection with chamber entrance
             # if len(self.chamb_ent) == 0: return False
             for i in np.arange(0, len(self.chamb_ent), 2):
                 intersect_flag = intersect_flag or \
@@ -695,6 +699,20 @@ class Geometry():
                     is_intersect(point1[0:2], point2[0:2],
                                    self.chamb_ext[i], self.chamb_ext[i+1])
         return intersect_flag
+
+    def check_fw_intersect(self, point1, point2):
+        '''
+        check intersection between segment 1->2 and outer first wall
+        '''
+        intersect_flag = False
+        # do not check intersection when particle is far from first wall
+        if (point1[1] > -0.46 and point2[1] > -0.46):
+            return intersect_flag
+        # check intersection with first wall
+        for i in np.arange(4, len(self.out_fw), 2):
+            intersect_flag = intersect_flag or \
+                is_intersect(point1[0:2], point2[0:2],
+                             self.out_fw[i], self.out_fw[i+1])
 
     def check_plates_intersect(self, point1, point2):
         '''
@@ -1791,7 +1809,9 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
     print('\n Reading Magnetic field')
     B_dict = {}
     for filename in os.listdir(dirname):
-        if filename.endswith('.dat'):
+        if 'old' in filename:
+            continue
+        elif filename.endswith('.dat'):
             with open(dirname + '/' + filename, 'r') as f:
                 volume_corner1 = [float(i) for i in f.readline().split()[0:3]]
                 volume_corner2 = [float(i) for i in f.readline().split()[0:3]]
@@ -1802,7 +1822,7 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
             B_read = np.load(dirname + '/' + filename) * Btor
             name = 'Tor'
 
-        elif 'Plasm' in filename:
+        elif 'Plasm_{}MA'.format(int(Ipl)) in filename:
             print('Reading plasma field...')
             B_read = np.load(dirname + '/' + filename)  # * Ipl
             name = 'Plasm'
