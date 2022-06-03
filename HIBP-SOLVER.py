@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 240., 240., 20.
+Emin, Emax, dEbeam = 100., 380., 20.
 
 # set flags
 optimizeB2 = True
@@ -41,7 +41,7 @@ pass2AN = True
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3., 33., 3.  # -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = 0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -78,14 +78,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-try:
-    hb.read_plates('sec', geomT15, E)
-    # add diafragm for A3 plates to Geometry
-    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-    print('\n Secondary Beamline loaded')
-except FileNotFoundError:
-    print('\n Secondary Beamline NOT FOUND')
+# try:
+#     hb.read_plates('sec', geomT15, E)
+#     # add diafragm for A3 plates to Geometry
+#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+#     print('\n Secondary Beamline loaded')
+# except FileNotFoundError:
+#     print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():
@@ -186,19 +186,20 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-# sys.exit()
+hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
-                 onlyE=False, marker_A2='')
+                 onlyE=True, marker_A2='')
 # hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
 #                 plot_analyzer=False, plot_traj=True, plot_all=False)
 
 hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
                  full_primary=False, plot_analyzer=True,
                  plot_det_line=True, subplots_vertical=True, scale=4)
-# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
+# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
+#                         linestyle='-o', Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
 
 # %% Optimize Secondary Beamline

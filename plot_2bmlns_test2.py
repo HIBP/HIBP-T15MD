@@ -107,7 +107,7 @@ except FileNotFoundError:
     print('\n Secondary Beamline NOT FOUND')
 
 # %% pass trajectories to analyzer 1
-traj_list = hb.read_traj_list('B1_I1/E100-340_UA23-33_alpha34.0_beta-10.0_x260y-10z1.pkl')
+traj_list = hb.read_traj_list('B1_I1/E100-340_UA22-34_alpha34.0_beta-10.0_x260y-10z1.pkl')
 
 traj_list_passed = copy.deepcopy(traj_list)
 runcell('Optimize Secondary Beamline', 'D:/NRCKI/py/HIBP-T15MD/HIBP-SOLVER.py')
@@ -142,7 +142,7 @@ except FileNotFoundError:
     print('\n Secondary Beamline NOT FOUND')
 
 # %% pass trajectories to analyzer 2
-traj_list = hb.read_traj_list('B1_I1/E100-300_UA26-33_alpha34.0_beta-10.0_x260y0z1.pkl')
+traj_list = hb.read_traj_list('B1_I1/E100-300_UA24-34_alpha34.0_beta-10.0_x260y0z1.pkl')
 traj_list_passed = []
 
 traj_list_passed = copy.deepcopy(traj_list)

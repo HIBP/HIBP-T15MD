@@ -1105,7 +1105,7 @@ def plot_legend(ax, figure_name):
 
 
 # %%
-def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
+def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all', linestyle='-o'):
     '''
     plot grid colored as angles at the last point of the secondary trajectory
     '''
@@ -1140,9 +1140,9 @@ def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
 
         angles_dict[Eb] = np.array(angle_list)
         ax1.plot(angles_dict[Eb][:, 0], angles_dict[Eb][:, 2],
-                 'o', label=str(Eb))
+                 linestyle, label=str(Eb))
         ax2.plot(angles_dict[Eb][:, 0], angles_dict[Eb][:, 3],
-                 'o', label=str(Eb))
+                 linestyle, label=str(Eb))
 
     ax1.legend()
     ax2.legend()
