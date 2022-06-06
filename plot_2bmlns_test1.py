@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import hibplib as hb
 import hibpplotlib as hbplot
 
-Ebeam = 260.
+Ebeam = 300.
 
 # %% calculate for analyzer 1
 analyzer = 1

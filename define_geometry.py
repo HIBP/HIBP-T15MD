@@ -70,15 +70,16 @@ def define_geometry(analyzer=1):
     elif analyzer == 2:
         xaim = 2.6  # 2.5
         yaim = 0.0  # 0.15
-        zaim = zport_in  # 0.0
+        zaim = zport_in + 0.1 # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
-        alpha_sec = 25.  # 30  # 35.  # 5.
-        beta_sec = 16.  # 20.  # 25.
+        alpha_sec = 30  # 35.  # 5.
+        beta_sec = 20.  # 25.
         gamma_sec = 0.  # -20.
         # in the second line U_lower_plate=0
         A3_angles = np.array([alpha_sec, beta_sec, gamma_sec+180.])
     r_aim = np.array([xaim, yaim, zaim])
     geom.r_dict['aim'] = r_aim
+    geom.r_dict['aim_lowE'] = r_aim + np.array([0., 0., 0.025])
 
     # SECONDARY beamline geometry
     sec_angles = {'A3': A3_angles,
@@ -100,8 +101,10 @@ def define_geometry(analyzer=1):
     geom.add_coords('A3', 'aim', dist_A3, geom.angles_dict['A3'])
     # coordinates of the center of the BETA3 plates
     geom.add_coords('B3', 'A3', dist_B3, geom.angles_dict['B3'])
+    geom.add_coords('aimB3', 'A3', dist_B3 - 0.2, geom.angles_dict['A3'])
     # coordinates of the center of the ALPHA4 plates
     geom.add_coords('A4', 'B3', dist_A4, geom.angles_dict['A4'])
+    geom.add_coords('aimA4', 'B3', dist_A4 - 0.2, geom.angles_dict['A4'])
     # Coordinates of the CENTRAL slit
     geom.add_coords('slit', 'A4', dist_s, geom.angles_dict['an'])
     # Coordinates of the ANALYZER

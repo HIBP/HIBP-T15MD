@@ -16,7 +16,7 @@ import sys
 
 # %% set up main parameters
 # choose analyzer number
-analyzer = 1
+analyzer = 2
 
 # toroidal field on the axis
 Btor = 1.0  # [T]
@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 100., 380., 20.
+Emin, Emax, dEbeam = 100., 100., 20.
 
 # set flags
 optimizeB2 = True
@@ -45,7 +45,7 @@ UA2min, UA2max, dUA2 = 0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
-UB2, dUB2 = -3.0, 10.  # [kV], [kV/m]
+UB2, dUB2 = 0.0, 5.0  # 10.  # [kV], [kV/m]
 
 # B3 voltages
 UB3, dUB3 = 0.0, 10  # [kV], [kV/m]
@@ -78,14 +78,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-# try:
-#     hb.read_plates('sec', geomT15, E)
-#     # add diafragm for A3 plates to Geometry
-#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-#     print('\n Secondary Beamline loaded')
-# except FileNotFoundError:
-#     print('\n Secondary Beamline NOT FOUND')
+try:
+    hb.read_plates('sec', geomT15, E)
+    # add diafragm for A3 plates to Geometry
+    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+    print('\n Secondary Beamline loaded')
+except FileNotFoundError:
+    print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():
@@ -122,7 +122,7 @@ for Ebeam in Ebeam_range:
                               NA2_points, dtype=int)
     if optimizeB2:
         optimizeA3B3 = True
-        target = 'aim'
+        target = 'aim_lowE'  # 'aim'  # 'aimB3'
         # A2 plates voltage
         UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)
         # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
@@ -186,8 +186,8 @@ else:
 traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
-hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-sys.exit()
+# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+# sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
@@ -210,15 +210,15 @@ if optimizeA3B3:
     print('\n Secondary beamline optimization')
     for tr in copy.deepcopy(traj_list_passed):
         tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
-                                         E, B, dt, target='slit',
+                                         E, B, dt, target='aimA4',  # 'slit',
                                          UA3_max=40., UB3_max=40.,
                                          eps_xy=1e-3, eps_z=1e-3)
         # check geometry intersection and voltage failure
         if not (True in tr.IntersectGeometrySec.values()) and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
-            # UA3 = tr.U['A3']
-            # UB3 = tr.U['B3']
+            UA3 = tr.U['A3']
+            UB3 = tr.U['B3']
         else:
             print('\n NOT saved')
     t2 = time.time()
@@ -291,10 +291,11 @@ hbplot.plot_scan(traj_list_an, geomT15, Ebeam, Btor, Ipl,
 # for tr in copy.deepcopy(traj_list_a3b3):
 #     tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
 #                         E, B, dt, eps_alpha=0.05)
-#     if not tr.IntersectGeometrySec:
-#         traj_list_a4.append(tr)
-#         print('\n Trajectory saved')
-#         UA4 = tr.U['A4']
+#     # if not tr.IntersectGeometrySec:
+#     #     traj_list_a4.append(tr)
+#     #     print('\n Trajectory saved')
+#     #     UA4 = tr.U['A4']
+#     traj_list_a4.append(tr)
 
 # t2 = time.time()
 # print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))

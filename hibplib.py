@@ -458,7 +458,12 @@ class Plates():
         if self.edges.shape[1] > 4:
             # for flared plates the sequence of vertices is
             # [UP1sw, UP1, UP2, UP2sw, UP3, UP4]
-            point_ind = [1, 4, 5, 2]
+            point_ind = [1, 5, 4, 2]
+            if segm_poly_intersect(self.edges[0][point_ind], segment_coords) or \
+               segm_poly_intersect(self.edges[1][point_ind], segment_coords):
+                return True
+            # intersection with flared part
+            point_ind = [0, 1, 2, 3]
             if segm_poly_intersect(self.edges[0][point_ind], segment_coords) or \
                segm_poly_intersect(self.edges[1][point_ind], segment_coords):
                 return True
@@ -997,15 +1002,8 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     '''
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
     print('Target: ' + target)
-    if target == 'slit':
-        rs = geom.r_dict['slit']
-        stop_plane_n = geom.plates_dict['an'].slit_plane_n
-    elif target == 'det':
-        rs = geom.r_dict['det']
-        stop_plane_n = geom.plates_dict['an'].det_plane_n
-    elif target == 'A4':
-        rs = geom.r_dict['A4']
-        stop_plane_n = geom.plates_dict['an'].slit_plane_n
+    rs = geom.r_dict[target]
+    stop_plane_n = geom.plates_dict['an'].slit_plane_n
 
     tr.dt1 = dt
     tr.dt2 = dt
@@ -1089,12 +1087,12 @@ def optimize_A4(tr, geom, UA4, dUA4, E, B, dt, eps_alpha=0.1):
     '''
     get voltages on A4 to get proper alpha angle at the entrance to analyzer
     '''
-    print('\n A4 optimization\n')
+    print('\n A4 optimization')
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
 
     rs = geom.r_dict['slit']
     stop_plane_n = geom.plates_dict['an'].slit_plane_n
-    alpha_target = geom.angles_dict['an']
+    alpha_target = geom.angles_dict['an'][0]
 
     tr.dt1 = dt
     tr.dt2 = dt
