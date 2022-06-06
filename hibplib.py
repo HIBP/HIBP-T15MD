@@ -54,7 +54,7 @@ class Traj():
         self.Ebeam = Ebeam
         # particle velocity:
         Vabs = np.sqrt(2 * Ebeam * 1.602176634E-16 / m)
-        V0 = calc_vector(Vabs, alpha, beta, direction=(-1, -1, 1))
+        V0 = calc_vector(-Vabs, alpha, beta)
         self.alpha = alpha
         self.beta = beta
         self.U = U
@@ -824,15 +824,17 @@ def add_diafragm(geom, plts_name, diaf_name, diaf_width=0.1):
 
 # %%
 @numba.njit()
-def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
+def calc_vector(length, alpha, beta):
     '''
     calculate vector based on its length and angles
+    alpha is the angle with XZ plane
+    beta is the angle of rotation around Y axis
     '''
     drad = np.pi/180.  # converts degrees to radians
-    x = direction[0] * length * np.cos(alpha*drad) * np.cos(beta*drad)
-    y = direction[1] * length * np.sin(alpha*drad)
-    z = direction[2] * length * np.cos(alpha*drad) * np.sin(beta*drad)
-    return np.array([x, y, z])
+    x = np.cos(alpha*drad) * np.cos(beta*drad)
+    y = np.sin(alpha*drad)
+    z = -np.cos(alpha*drad) * np.sin(beta*drad)
+    return np.array([x, y, z]) * length
 
 
 @numba.njit()

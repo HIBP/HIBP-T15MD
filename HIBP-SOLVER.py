@@ -65,8 +65,7 @@ r0 = geomT15.r_dict['r0']  # trajectory starting point
 # angles of aim plane normal [deg]
 alpha_aim = 0.
 beta_aim = 0.
-stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim,
-                              direction=(1, 1, 1))
+stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim)
 
 # %% Load Electric Field
 E = {}
