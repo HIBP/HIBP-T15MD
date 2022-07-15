@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import hibplib as hb
 import hibpplotlib as hbplot
 
-Ebeam = 300.
+Ebeam = 100.
 
 # %% calculate for analyzer 1
 analyzer = 1
@@ -41,11 +41,15 @@ except FileNotFoundError:
 # traj_list_a3b3_low = copy.deepcopy(traj_list_a3b3)
 
 # %% plot analyzer 1
-fig, ax1 = plt.subplots()
+fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, sharex=True,
+                               gridspec_kw={'height_ratios':
+                                            [4, 1]})
 hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
+hbplot.set_axes_param(ax2, 'X (m)', 'Z (m)')
 color_sec = 'g'
 # plot geometry
 geomT15.plot(ax1, axes='XY', plot_analyzer=True)
+geomT15.plot(ax2, axes='XZ', plot_analyzer=True)
 A2list = []
 det_line = np.empty([0, 3])
 for tr in traj_list_a3b3_low:
@@ -54,8 +58,10 @@ for tr in traj_list_a3b3_low:
         det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
         # plot primary
         tr.plot_prim(ax1, axes='XY', color='k', full_primary=False)
+        tr.plot_prim(ax2, axes='XZ', color='k', full_primary=False)
         # plot secondary
         tr.plot_sec(ax1, axes='XY', color=color_sec)
+        tr.plot_sec(ax2, axes='XZ', color=color_sec)
 ax1.plot(det_line[:, 0], det_line[:, 1], '--o', color=color_sec)
 
 # %% calculate for analyzer 2
@@ -93,6 +99,7 @@ except FileNotFoundError:
 color_sec = 'r'
 # plot geometry
 geomT15.plot(ax1, axes='XY', plot_analyzer=True)
+geomT15.plot(ax2, axes='XZ', plot_analyzer=True)
 A2list = []
 det_line = np.empty([0, 3])
 for tr in traj_list_a3b3_up:
@@ -101,8 +108,10 @@ for tr in traj_list_a3b3_up:
         det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
         # plot primary
         tr.plot_prim(ax1, axes='XY', color='k', full_primary=False)
+        tr.plot_prim(ax2, axes='XZ', color='k', full_primary=False)
         # plot secondary
         tr.plot_sec(ax1, axes='XY', color=color_sec)
+        tr.plot_sec(ax2, axes='XZ', color=color_sec)
 ax1.plot(det_line[:, 0], det_line[:, 1], '--o', color=color_sec)
 
 ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'

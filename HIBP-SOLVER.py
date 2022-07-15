@@ -16,7 +16,7 @@ import sys
 
 # %% set up main parameters
 # choose analyzer number
-analyzer = 2
+analyzer = 1
 
 # toroidal field on the axis
 Btor = 1.0  # [T]
@@ -24,14 +24,14 @@ Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
 # timestep [sec]
-dt = 0.4e-7  # 0.7e-7
+dt = 0.2e-7  # 0.7e-7
 
 # probing ion charge and mass
 q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 100., 100., 20.
+Emin, Emax, dEbeam = 120., 120., 20.
 
 # set flags
 optimizeB2 = True
@@ -41,7 +41,7 @@ pass2AN = True
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = 0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = 14., 14., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -111,6 +111,10 @@ traj_list_B2 = []
 Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
 
 for Ebeam in Ebeam_range:
+    # set different z_aim for different Ebeam
+    z_shift = -3.75e-4 * Ebeam + 8.75e-2
+    geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([0., 0., z_shift])
+    dUB2 = Ebeam/16.
     t1 = time.time()
     shot = ''
     input_fname = ''
@@ -121,7 +125,7 @@ for Ebeam in Ebeam_range:
                               NA2_points, dtype=int)
     if optimizeB2:
         optimizeA3B3 = True
-        target = 'aim_lowE'  # 'aim'  # 'aimB3'
+        target = 'aim_zshift'  # 'aim'  # 'aimB3'
         # A2 plates voltage
         UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)
         # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
@@ -186,7 +190,7 @@ traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-# sys.exit()
+sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
@@ -209,7 +213,7 @@ if optimizeA3B3:
     print('\n Secondary beamline optimization')
     for tr in copy.deepcopy(traj_list_passed):
         tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
-                                         E, B, dt, target='aimA4',  # 'slit',
+                                         E, B, dt, target='slit',  # 'aimA4'
                                          UA3_max=40., UB3_max=40.,
                                          eps_xy=1e-3, eps_z=1e-3)
         # check geometry intersection and voltage failure
@@ -270,7 +274,6 @@ if pass2AN:
 
 # %% Additional plots
 # hbplot.plot_grid_a3b3(traj_list_a3b3, geomT15, Btor, Ipl,
-#                       linestyle_A2='--', linestyle_E='-',
 #                       marker_E='p')
 # hbplot.plot_traj(traj_list_a3b3, geomT15, Ebeam, 0.0, Btor, Ipl,
 #                   full_primary=False, plot_analyzer=True,

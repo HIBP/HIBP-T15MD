@@ -107,11 +107,11 @@ except FileNotFoundError:
     print('\n Secondary Beamline NOT FOUND')
 
 # %% pass trajectories to analyzer 1
-traj_list = hb.read_traj_list('B1_I1/E100-340_UA22-34_alpha34.0_beta-10.0_x260y-10z1.pkl')
+# traj_list = hb.read_traj_list('B1_I1/E100-340_UA22-34_alpha34.0_beta-10.0_x260y-10z1.pkl')
 
-traj_list_passed = copy.deepcopy(traj_list)
-runcell('Optimize Secondary Beamline', 'D:/NRCKI/py/HIBP-T15MD/HIBP-SOLVER.py')
-traj_list_a3b3_low = copy.deepcopy(traj_list_a3b3)
+# traj_list_passed = copy.deepcopy(traj_list)
+# runcell('Optimize Secondary Beamline', 'D:/NRCKI/py/HIBP-T15MD/HIBP-SOLVER.py')
+# traj_list_a3b3_low = copy.deepcopy(traj_list_a3b3)
 
 # %% plot grid for analyzer 1
 fig, ax1 = plt.subplots()
@@ -142,12 +142,12 @@ except FileNotFoundError:
     print('\n Secondary Beamline NOT FOUND')
 
 # %% pass trajectories to analyzer 2
-traj_list = hb.read_traj_list('B1_I1/E100-300_UA24-34_alpha34.0_beta-10.0_x260y0z1.pkl')
-traj_list_passed = []
+# traj_list = hb.read_traj_list('B1_I1/E100-300_UA24-34_alpha34.0_beta-10.0_x260y0z1.pkl')
+# traj_list_passed = []
 
-traj_list_passed = copy.deepcopy(traj_list)
-runcell('Optimize Secondary Beamline', 'D:/NRCKI/py/HIBP-T15MD/HIBP-SOLVER.py')
-traj_list_a3b3_up = copy.deepcopy(traj_list_a3b3)
+# traj_list_passed = copy.deepcopy(traj_list)
+# runcell('Optimize Secondary Beamline', 'D:/NRCKI/py/HIBP-T15MD/HIBP-SOLVER.py')
+# traj_list_a3b3_up = copy.deepcopy(traj_list_a3b3)
 
 # %% plot analyzer 2
 color_sec = 'r'
