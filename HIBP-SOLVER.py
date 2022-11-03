@@ -8,7 +8,7 @@ primary beamline (B2 plates) and secondary beamline (A3, B3, A4 plates)
 
 import numpy as np
 import hibplib as hb
-import hibpplotlib as hbp
+import hibpplotlib as hbplot
 import define_geometry as defgeom
 import copy
 import time
@@ -31,7 +31,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 120., 120., 20.
+Emin, Emax, dEbeam = 240., 240., 20.
 
 # set flags
 optimizeB2 = True
@@ -85,14 +85,14 @@ except FileNotFoundError:
     print('\n Primary Beamline NOT FOUND')
 
 # load E for secondary beamline
-# try:
-#     hb.read_plates('sec', geomT15, E)
-#     # add diafragm for A3 plates to Geometry
-#     hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
-#     hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
-#     print('\n Secondary Beamline loaded')
-# except FileNotFoundError:
-#     print('\n Secondary Beamline NOT FOUND')
+try:
+    hb.read_plates('sec', geomT15, E)
+    # add diafragm for A3 plates to Geometry
+    hb.add_diafragm(geomT15, 'A3', 'A3d', diaf_width=0.05)
+    hb.add_diafragm(geomT15, 'A4', 'A4d', diaf_width=0.05)
+    print('\n Secondary Beamline loaded')
+except FileNotFoundError:
+    print('\n Secondary Beamline NOT FOUND')
 
 # %% Analyzer parameters
 if 'an' in geomT15.plates_dict.keys():
@@ -105,7 +105,7 @@ else:
     G = 1.
     print('\nNO Analyzer')
 
-# %% Optimize Primary Beamline
+    # %% Optimize Primary Beamline
 # define list of trajectories that hit r_aim
 traj_list_B2 = []
 # initial beam energy range

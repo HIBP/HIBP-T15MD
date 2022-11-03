@@ -948,7 +948,7 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
     geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
     # get number of slits
-    n_slits = geom.slits_edges.shape[0]
+    n_slits = geom.plates_dict['an'].n_slits
     # set color cycler
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
@@ -976,6 +976,8 @@ def plot_fat_beam(fat_beam_list, geom, Btor, Ipl, n_slit='all', scale=3):
         # plot secondaries
         for i in slits:
             c = colors[i]
+            if tr.RV_sec_toslits[i] is None:
+                continue
             for fan_tr in tr.RV_sec_toslits[i]:
                 ax1.plot(fan_tr[:, 0], fan_tr[:, 1], color=c)
                 ax2.plot(fan_tr[:, 0], fan_tr[:, 2], color=c)
@@ -1013,7 +1015,7 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
     geom.plot(ax3, axes='ZY', plot_aim=False, plot_analyzer=True)
 
     # get number of slits
-    n_slits = geom.slits_edges.shape[0]
+    n_slits = geom.plates_dict['an'].n_slits
     # set color cycler
     prop_cycle = plt.rcParams['axes.prop_cycle']
     colors = prop_cycle.by_key()['color']
@@ -1052,8 +1054,8 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
         coords_last = np.empty([0, 3])
         for tr in fat_beam_list:
             # skip empty arrays
-            if tr.ion_zones[i].shape[0] == 0:
-                continue
+            if tr.ion_zones[i] is None: continue
+            if tr.ion_zones[i].shape[0] == 0: continue
             coords_first = np.vstack([coords_first, tr.ion_zones[i][0, 0:3]])
             coords_last = np.vstack([coords_last, tr.ion_zones[i][-1, 0:3]])
             # plot zones of each filament
@@ -1062,6 +1064,8 @@ def plot_svs(fat_beam_list, geom, Btor, Ipl, n_slit='all',
                          'o', color=c, markerfacecolor='white')
                 ax3.plot(tr.ion_zones[i][:, 2], tr.ion_zones[i][:, 1],
                          'o', color=c, markerfacecolor='white')
+
+        if coords_first.shape[0] == 0: continue
 
         if plot_cut:
             coords = np.vstack([coords_first, coords_last[::-1]])

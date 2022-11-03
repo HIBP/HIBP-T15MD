@@ -7,17 +7,17 @@ import matplotlib.pyplot as plt
 # %%
 ''' test FAT beam with focusing
 '''
-Ebeam = 140.
-UA2 = 3.0
+Ebeam = 240.  # 140.
+UA2 = 6.0  # 3.0
 
 n_slits = 7
 # add slits to Geometry
 # geomT15.add_slits(n_slits=n_slits, slit_dist=0.01, slit_w=5e-3,
 #                   slit_l=0.1, slit_gamma=-20.)
-r_slits = geomT15.slits_edges
+r_slits = geomT15.plates_dict['an'].slits_edges
 rs = geomT15.r_dict['slit']
 # calculate normal to slit plane
-slit_plane_n = geomT15.slit_plane_n
+slit_plane_n = geomT15.plates_dict['an'].slit_plane_n
 
 # %%
 traj_list_copy = copy.deepcopy(traj_list_a3b3)
@@ -25,7 +25,7 @@ traj_list_copy = copy.deepcopy(traj_list_a3b3)
 
 # %%
 # set number of filaments in a beam
-d_beam = 0.02  # beam diameter [m]
+d_beam = 0.01  # beam diameter [m]
 n_filaments_xy = 5  # number of filaments in xy plane (must be ODD)
 skip_center_traj = True
 n_gamma = 4  # number of chords in beam cross-section
@@ -35,8 +35,8 @@ drad = np.pi/180.  # converts degrees to radians
 fat_beam_list = []
 
 for tr in traj_list_copy:
-    if tr.Ebeam == Ebeam and tr.U[0] == UA2:
-        print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U[0]))
+    if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
+        print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
     else:
         continue
     r0 = tr.RV0[0, :3]
@@ -72,7 +72,7 @@ for tr in traj_list_copy:
             tr_fat = copy.deepcopy(tr)
             tr_fat.RV0[0, :] = np.hstack([r_rot, v_rot])
             # tr_fat.U = [0., 0., 0., 0.]
-            # tr_fat.pass_prim(E, B, geomT15, tmax=0.01)
+            tr_fat.pass_prim(E, B, geomT15, tmax=0.01)
             tr_fat = hb.pass_to_slits(tr_fat, dt, E, B, geomT15,
                                       timestep_divider=10)
             fat_beam_list.append(tr_fat)
@@ -95,8 +95,8 @@ hbplot.plot_fat_beam(fat_beam_list, geomT15, Btor, Ipl, n_slit=2)
 
 # %% plot SVs
 hbplot.plot_svs(fat_beam_list, geomT15, Btor, Ipl, n_slit='all',
-                plot_prim=True, plot_sec=False, plot_zones=False,
-                plot_cut=False, alpha_xy=10, alpha_zy=20)
+                plot_prim=False, plot_sec=False, plot_zones=False,
+                plot_cut=True, alpha_xy=10, alpha_zy=20)
 hbplot.plot_svs(fat_beam_list, geomT15, Btor, Ipl, n_slit=2,
                 plot_prim=True, plot_sec=False, plot_zones=True,
                 plot_cut=False, alpha_xy=10, alpha_zy=20)

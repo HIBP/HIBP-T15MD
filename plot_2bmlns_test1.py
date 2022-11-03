@@ -6,7 +6,7 @@ double beamline test
 import numpy as np
 import matplotlib.pyplot as plt
 import hibplib as hb
-import hibplotlib as hbplot
+import hibpplotlib as hbplot
 
 fig, ax1 = plt.subplots()
 hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
@@ -14,8 +14,8 @@ hbplot.set_axes_param(ax1, 'X (m)', 'Y (m)')
 # calculate for analyzer 1
 analyzer = 1
 
-runcell('Define Geometry', 'D:/Philipp/Py/HIBP-T15MD/HIBP-SOLVER.py')
-runcell('Load Electric Field', 'D:/Philipp/Py/HIBP-T15MD/HIBP-SOLVER.py')
+runcell('Define Geometry', 'D:/NRCKI/Py/HIBP-T15MD/HIBP-SOLVER.py')
+runcell('Load Electric Field', 'D:/NRCKI/Py/HIBP-T15MD/HIBP-SOLVER.py')
 
 color_sec = 'r'
 # plot geometry
@@ -35,8 +35,8 @@ ax1.plot(det_line[:, 0], det_line[:, 1], '--o', color=color_sec)
 # calculate for analyzer 2
 analyzer = 2
 
-runcell('Define Geometry', 'D:/Philipp/Py/HIBP-T15MD/HIBP-SOLVER.py')
-runcell('Load Electric Field', 'D:/Philipp/Py/HIBP-T15MD/HIBP-SOLVER.py')
+runcell('Define Geometry', 'D:/NRCKI/Py/HIBP-T15MD/HIBP-SOLVER.py')
+runcell('Load Electric Field', 'D:/NRCKI/Py/HIBP-T15MD/HIBP-SOLVER.py')
 
 color_sec = 'g'
 # plot geometry
