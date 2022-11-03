@@ -54,7 +54,7 @@ class Traj():
         self.Ebeam = Ebeam
         # particle velocity:
         Vabs = np.sqrt(2 * Ebeam * 1.602176634E-16 / m)
-        V0 = calc_vector(Vabs, alpha, beta, direction=(-1, -1, 1))
+        V0 = calc_vector(-Vabs, alpha, beta)
         self.alpha = alpha
         self.beta = beta
         self.U = U
@@ -121,7 +121,7 @@ class Traj():
 
             if geom.check_chamb_intersect('prim', RV_old[0, 0:3],
                                           RV_new[0, 0:3]):
-                print('Primary intersected chamber')
+                print('Primary intersected chamber entrance')
                 self.IntersectGeometry['chamb'] = True
                 break
 
@@ -131,6 +131,10 @@ class Traj():
                 print('Primary intersected ' + plts_name + ' plates')
                 self.IntersectGeometry[plts_name] = True
                 break
+
+            if geom.check_fw_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
+                print('Primary intersected first wall')
+                break  # stop primary trajectory calculation
 
             RV_old = RV_new
             t = t + dt
@@ -454,7 +458,12 @@ class Plates():
         if self.edges.shape[1] > 4:
             # for flared plates the sequence of vertices is
             # [UP1sw, UP1, UP2, UP2sw, UP3, UP4]
-            point_ind = [1, 4, 5, 2]
+            point_ind = [1, 5, 4, 2]
+            if segm_poly_intersect(self.edges[0][point_ind], segment_coords) or \
+               segm_poly_intersect(self.edges[1][point_ind], segment_coords):
+                return True
+            # intersection with flared part
+            point_ind = [0, 1, 2, 3]
             if segm_poly_intersect(self.edges[0][point_ind], segment_coords) or \
                segm_poly_intersect(self.edges[1][point_ind], segment_coords):
                 return True
@@ -681,7 +690,7 @@ class Geometry():
            (point1[0] < 2.0 and point2[1] < 0.8):
                return intersect_flag
         if beamline == 'prim':
-            # check intersection with chamber entrance and chamber at HFS
+            # check intersection with chamber entrance
             # if len(self.chamb_ent) == 0: return False
             for i in np.arange(0, len(self.chamb_ent), 2):
                 intersect_flag = intersect_flag or \
@@ -694,6 +703,21 @@ class Geometry():
                 intersect_flag = intersect_flag or \
                     is_intersect(point1[0:2], point2[0:2],
                                    self.chamb_ext[i], self.chamb_ext[i+1])
+        return intersect_flag
+
+    def check_fw_intersect(self, point1, point2):
+        '''
+        check intersection between segment 1->2 and outer first wall
+        '''
+        intersect_flag = False
+        # do not check intersection when particle is far from first wall
+        if (point1[1] > -0.35 and point2[1] > -0.35):
+            return intersect_flag
+        # check intersection with first wall
+        for i in np.arange(4, len(self.out_fw), 2):
+            intersect_flag = intersect_flag or \
+                is_intersect(point1[0:2], point2[0:2],
+                             self.out_fw[i], self.out_fw[i+1])
         return intersect_flag
 
     def check_plates_intersect(self, point1, point2):
@@ -800,15 +824,17 @@ def add_diafragm(geom, plts_name, diaf_name, diaf_width=0.1):
 
 # %%
 @numba.njit()
-def calc_vector(length, alpha, beta, direction=(1, 1, -1)):
+def calc_vector(length, alpha, beta):
     '''
     calculate vector based on its length and angles
+    alpha is the angle with XZ plane
+    beta is the angle of rotation around Y axis
     '''
     drad = np.pi/180.  # converts degrees to radians
-    x = direction[0] * length * np.cos(alpha*drad) * np.cos(beta*drad)
-    y = direction[1] * length * np.sin(alpha*drad)
-    z = direction[2] * length * np.cos(alpha*drad) * np.sin(beta*drad)
-    return np.array([x, y, z])
+    x = np.cos(alpha*drad) * np.cos(beta*drad)
+    y = np.sin(alpha*drad)
+    z = -np.cos(alpha*drad) * np.sin(beta*drad)
+    return np.array([x, y, z]) * length
 
 
 @numba.njit()
@@ -978,15 +1004,8 @@ def optimize_A3B3(tr, geom, UA3, UB3, dUA3, dUB3,
     '''
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
     print('Target: ' + target)
-    if target == 'slit':
-        rs = geom.r_dict['slit']
-        stop_plane_n = geom.plates_dict['an'].slit_plane_n
-    elif target == 'det':
-        rs = geom.r_dict['det']
-        stop_plane_n = geom.plates_dict['an'].det_plane_n
-    elif target == 'A4':
-        rs = geom.r_dict['A4']
-        stop_plane_n = geom.plates_dict['an'].slit_plane_n
+    rs = geom.r_dict[target]
+    stop_plane_n = geom.plates_dict['an'].slit_plane_n
 
     tr.dt1 = dt
     tr.dt2 = dt
@@ -1070,12 +1089,12 @@ def optimize_A4(tr, geom, UA4, dUA4, E, B, dt, eps_alpha=0.1):
     '''
     get voltages on A4 to get proper alpha angle at the entrance to analyzer
     '''
-    print('\n A4 optimization\n')
+    print('\n A4 optimization')
     print('\nEb = {}, UA2 = {}'.format(tr.Ebeam, tr.U['A2']))
 
     rs = geom.r_dict['slit']
     stop_plane_n = geom.plates_dict['an'].slit_plane_n
-    alpha_target = geom.angles_dict['an']
+    alpha_target = geom.angles_dict['an'][0]
 
     tr.dt1 = dt
     tr.dt2 = dt
@@ -1791,7 +1810,9 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
     print('\n Reading Magnetic field')
     B_dict = {}
     for filename in os.listdir(dirname):
-        if filename.endswith('.dat'):
+        if 'old' in filename:
+            continue
+        elif filename.endswith('.dat'):
             with open(dirname + '/' + filename, 'r') as f:
                 volume_corner1 = [float(i) for i in f.readline().split()[0:3]]
                 volume_corner2 = [float(i) for i in f.readline().split()[0:3]]
@@ -1802,7 +1823,7 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
             B_read = np.load(dirname + '/' + filename) * Btor
             name = 'Tor'
 
-        elif 'Plasm' in filename:
+        elif 'Plasm_{}MA'.format(int(Ipl)) in filename:
             print('Reading plasma field...')
             B_read = np.load(dirname + '/' + filename)  # * Ipl
             name = 'Plasm'

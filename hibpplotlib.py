@@ -675,7 +675,8 @@ def plot_scan(traj_list, geom, Ebeam, Btor, Ipl, full_primary=False,
     for tr in traj_list:
         if tr.Ebeam == Ebeam:
             A2list.append(tr.U['A2'])
-            det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
+            if plot_det_line:
+                det_line = np.vstack([det_line, tr.RV_sec[0, 0:3]])
             # plot primary
             tr.plot_prim(ax1, axes='XY', color='k', full_primary=full_primary)
             tr.plot_prim(ax2, axes='XZ', color='k', full_primary=full_primary)
@@ -1108,7 +1109,7 @@ def plot_legend(ax, figure_name):
 
 
 # %%
-def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
+def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all', linestyle='-o'):
     '''
     plot grid colored as angles at the last point of the secondary trajectory
     '''
@@ -1143,9 +1144,9 @@ def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all'):
 
         angles_dict[Eb] = np.array(angle_list)
         ax1.plot(angles_dict[Eb][:, 0], angles_dict[Eb][:, 2],
-                 'o', label=str(Eb))
+                 linestyle, label=str(Eb))
         ax2.plot(angles_dict[Eb][:, 0], angles_dict[Eb][:, 3],
-                 'o', label=str(Eb))
+                 linestyle, label=str(Eb))
 
     ax1.legend()
     ax2.legend()

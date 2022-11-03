@@ -24,7 +24,7 @@ Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
 # timestep [sec]
-dt = 0.4e-7  # 0.7e-7
+dt = 0.2e-7  # 0.7e-7
 
 # probing ion charge and mass
 q = 1.602176634e-19  # electron charge [Co]
@@ -35,17 +35,17 @@ Emin, Emax, dEbeam = 240., 240., 20.
 
 # set flags
 optimizeB2 = True
-optimizeA3B3 = False
+optimizeA3B3 = True
 calculate_zones = False
-pass2AN = False
+pass2AN = True
 save_radref = False
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = 14., 14., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
-UB2, dUB2 = 0.0, 10.  # [kV], [kV/m]
+UB2, dUB2 = 0.0, 5.0  # 10.  # [kV], [kV/m]
 
 # B3 voltages
 UB3, dUB3 = 0.0, 10  # [kV], [kV/m]
@@ -65,15 +65,7 @@ r0 = geomT15.r_dict['r0']  # trajectory starting point
 # angles of aim plane normal [deg]
 alpha_aim = 0.
 beta_aim = 0.
-stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim,
-                              direction=(1, 1, 1))
-
-# %% Load Magnetic Field
-pf_coils = hb.import_PFcoils('PFCoils.dat')
-PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
-if 'B' not in locals():
-    dirname = 'magfield'
-    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
+stop_plane_n = hb.calc_vector(1.0, alpha_aim, beta_aim)
 
 # %% Load Electric Field
 E = {}
@@ -105,13 +97,24 @@ else:
     G = 1.
     print('\nNO Analyzer')
 
-    # %% Optimize Primary Beamline
+# %% Load Magnetic Field
+pf_coils = hb.import_PFcoils('PFCoils.dat')
+PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
+if 'B' not in locals():
+    dirname = 'magfield'
+    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
+
+# %% Optimize Primary Beamline
 # define list of trajectories that hit r_aim
 traj_list_B2 = []
 # initial beam energy range
 Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
 
 for Ebeam in Ebeam_range:
+    # set different z_aim for different Ebeam
+    z_shift = -3.75e-4 * Ebeam + 8.75e-2
+    geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([0., 0., z_shift])
+    dUB2 = Ebeam/16.
     t1 = time.time()
     shot = ''
     input_fname = ''
@@ -122,7 +125,7 @@ for Ebeam in Ebeam_range:
                               NA2_points, dtype=int)
     if optimizeB2:
         optimizeA3B3 = True
-        target = 'aim'
+        target = 'aim_zshift'  # 'aim'  # 'aimB3'
         # A2 plates voltage
         UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)
         # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
@@ -159,7 +162,6 @@ for Ebeam in Ebeam_range:
         # optimize B2 voltage
         tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
                             target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
-        UB2 = tr.U['B2']
         # check geometry intersection
         if True in tr.IntersectGeometry.values():
             print('NOT saved, primary intersected geometry')
@@ -167,6 +169,9 @@ for Ebeam in Ebeam_range:
         if True in tr.IntersectGeometrySec.values():
             print('NOT saved, secondary intersected geometry')
             continue
+        # if no intersections, upldate UB2 values
+        UB2 = tr.U['B2']
+        # check aim
         if tr.IsAimXY and tr.IsAimZ:
             traj_list_B2.append(tr)
             print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
@@ -185,18 +190,19 @@ traj_list_passed = copy.deepcopy(traj_list_B2)
 
 # %% Save traj list
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-# sys.exit()
+sys.exit()
 
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
-                 onlyE=False, marker_A2='')
+                 onlyE=True, marker_A2='')
 # hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
 #                 plot_analyzer=False, plot_traj=True, plot_all=False)
 
 hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
                  full_primary=False, plot_analyzer=True,
-                 plot_det_line=False, subplots_vertical=True, scale=4)
-# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl, Ebeam='all')
+                 plot_det_line=True, subplots_vertical=True, scale=4)
+# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
+#                         linestyle='-o', Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
 
 # %% Optimize Secondary Beamline
@@ -207,15 +213,15 @@ if optimizeA3B3:
     print('\n Secondary beamline optimization')
     for tr in copy.deepcopy(traj_list_passed):
         tr, vltg_fail = hb.optimize_A3B3(tr, geomT15, UA3, UB3, dUA3, dUB3,
-                                         E, B, dt, target='slit',
+                                         E, B, dt, target='slit',  # 'aimA4'
                                          UA3_max=40., UB3_max=40.,
                                          eps_xy=1e-3, eps_z=1e-3)
         # check geometry intersection and voltage failure
         if not (True in tr.IntersectGeometrySec.values()) and not vltg_fail:
             traj_list_a3b3.append(tr)
             print('\n Trajectory saved')
-            # UA3 = tr.U['A3']
-            # UB3 = tr.U['B3']
+            UA3 = tr.U['A3']
+            UB3 = tr.U['B3']
         else:
             print('\n NOT saved')
     t2 = time.time()
@@ -268,7 +274,6 @@ if pass2AN:
 
 # %% Additional plots
 # hbplot.plot_grid_a3b3(traj_list_a3b3, geomT15, Btor, Ipl,
-#                       linestyle_A2='--', linestyle_E='-',
 #                       marker_E='p')
 # hbplot.plot_traj(traj_list_a3b3, geomT15, Ebeam, 0.0, Btor, Ipl,
 #                   full_primary=False, plot_analyzer=True,
@@ -288,10 +293,11 @@ hbplot.plot_scan(traj_list_an, geomT15, Ebeam, Btor, Ipl,
 # for tr in copy.deepcopy(traj_list_a3b3):
 #     tr = hb.optimize_A4(tr, geomT15, UA4, dUA4,
 #                         E, B, dt, eps_alpha=0.05)
-#     if not tr.IntersectGeometrySec:
-#         traj_list_a4.append(tr)
-#         print('\n Trajectory saved')
-#         UA4 = tr.U['A4']
+#     # if not tr.IntersectGeometrySec:
+#     #     traj_list_a4.append(tr)
+#     #     print('\n Trajectory saved')
+#     #     UA4 = tr.U['A4']
+#     traj_list_a4.append(tr)
 
 # t2 = time.time()
 # print("\n Calculation finished, t = {:.1f} s\n".format(t2-t1))
