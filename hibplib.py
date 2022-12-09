@@ -1803,7 +1803,7 @@ def read_plates(beamline, geom, E, dirname='elecfield'):
     return
 
 
-def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
+def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True, plot=False):
     '''
     read Magnetic field values and create Bx, By, Bz, rho interpolants
     '''
@@ -1851,8 +1851,11 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True):
 #    B[Babs > cutoff] = [np.nan, np.nan, np.nan]
 
     # plot B stream
-    hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
+    if plot:
+        hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
                          plot_sep=False, dens=2.0)
+    else: 
+        print('B loaded without plotting')
 
     x = np.arange(volume_corner1[0], volume_corner2[0], resolution)
     y = np.arange(volume_corner1[1], volume_corner2[1], resolution)

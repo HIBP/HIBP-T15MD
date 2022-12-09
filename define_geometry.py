@@ -30,7 +30,7 @@ def define_geometry(analyzer=1):
     # PRIMARY beamline geometry
     # alpha and beta angles of the PRIMARY beamline [deg]
     alpha_prim = 34.  # 20.  # 30.
-    beta_prim = -10.
+    beta_prim = -7. #-10.
     gamma_prim = 0.
     prim_angles = {'r0': np.array([alpha_prim, beta_prim, gamma_prim]),
                    'B2': np.array([alpha_prim, beta_prim, gamma_prim]),
@@ -59,12 +59,12 @@ def define_geometry(analyzer=1):
 
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
-        xaim = 2.6  # 2.5
+        xaim = 2.5  # 2.6
         yaim = -0.1  # -0.15  # -0.25
         zaim = zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
-        beta_sec = 12.
+        beta_sec = 12. #15. #12.
         gamma_sec = -20.  # 0
         A3_angles = np.array([alpha_sec, beta_sec, gamma_sec])
     elif analyzer == 2:

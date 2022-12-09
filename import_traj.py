@@ -47,11 +47,15 @@ if __name__ == '__main__':
     #          'E280-320_UA23-33_alpha34.0_beta-10.0_x260y-15z1.pkl',
     #          'E340-380_UA224-33_alpha34.0_beta-10.0_x260y-15z1.pkl']
     # grid with alpha=34 y_aim=-20
-    names = ['E100-140_UA26-18_alpha34.0_beta-10.0_x260y-20z1.pkl',
-             'E160-200_UA23-24_alpha34.0_beta-10.0_x260y-20z1.pkl',
-             'E220-260_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl',
-             'E280-320_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl',
-             'E340-380_UA215-33_alpha34.0_beta-10.0_x260y-20z1.pkl']
+    # names = ['E100-140_UA26-18_alpha34.0_beta-10.0_x260y-20z1.pkl',
+    #          'E160-200_UA23-24_alpha34.0_beta-10.0_x260y-20z1.pkl',
+    #          'E220-260_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl',
+    #          'E280-320_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl',
+    #          'E340-380_UA215-33_alpha34.0_beta-10.0_x260y-20z1.pkl']
+    
+    # grid with alpha=34 y_aim=-10, test
+    names = ['E100-140_UA26-18_alpha34.0_beta-10.0_x250y-10z5.pkl',
+             'E200-200_UA24-26_alpha34.0_beta-10.0_x250y-10z3.pkl']
 
     for name in names:
         traj_list += hb.read_traj_list(name, dirname='output/B1_I1')
