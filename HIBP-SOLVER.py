@@ -16,10 +16,10 @@ import sys
 
 # %% set up main parameters
 # choose analyzer number
-analyzer = 2
+analyzer = 1
 
 # toroidal field on the axis
-Btor = 1.0  # [T]
+Btor = 2.0  # [T]
 Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
@@ -31,25 +31,25 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 180., 320., 20.
+Emin, Emax, dEbeam = 100., 380., 20.
 
 # set flags
 optimizeB2 = True
-optimizeA3B3 = True
+optimizeA3B3 = False
 calculate_zones = False
-pass2AN = True
+pass2AN = False
 save_radref = False
 save_primary = True
-pass2aim_only = False
+pass2aim_only = True
 load_traj_from_file = False
 
 #plotting flags
 plot_B = False
 
-traj2load = ['E100-380_UA24-44_alpha34.0_beta-7.0_x250y-10z-3.pkl']
+traj2load = ['E100-340_UA24-40_alpha34.0_beta-10.0_x260y0z-3.pkl']
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = 5., 35., 1. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -50., 50., 2. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -215,16 +215,16 @@ if load_traj_from_file:
     eps_xy, eps_z = 1e-3, 1e-3
 
 # %% Additional plots
-# hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
-#                  onlyE=True, marker_A2='')
+hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
+                  onlyE=True, marker_A2='')
 # # hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
 # #                 plot_analyzer=False, plot_traj=True, plot_all=False)
 
 # hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
 #                  full_primary=False, plot_analyzer=True,
 #                  plot_det_line=True, subplots_vertical=True, scale=4)
-# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
-#                         linestyle='-o', Ebeam='all')
+hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
+                        linestyle='-o', Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
 
 # %% Optimize Secondary Beamline
