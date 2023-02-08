@@ -620,21 +620,24 @@ def plot_fan(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_traj=True,
 
             if plot_last_points:
                 last_points = []
-                for i in tr.Fan:
-                    last_points.append(i[-1, :])
+                for _traj_points in tr.Fan:
+                    last_points.append( _traj_points[-1, :] )
+                    
                 last_points = np.array(last_points)
-
-                ax1.plot(last_points[:, 0], last_points[:, 1],
-                         '--', c=sec_color)
-                ax1.scatter(last_points[:, 0], last_points[:, 1],
-                            marker=marker, c='w', edgecolors=sec_color,
-                            label='E={:.1f}, UA2={:.1f}'.format(Ebeam, UA2))
-                ax2.plot(last_points[:, 0], last_points[:, 2],
-                         '--o', c=sec_color, mfc='w', mec=sec_color)
-                ax3.plot(last_points[:, 2], last_points[:, 1],
-                         '--', c=sec_color)
-                ax3.scatter(last_points[:, 2], last_points[:, 1],
-                            marker=marker, c='w', edgecolors=sec_color)
+                if last_points.shape == (0,): 
+                    print('last_points is empty')
+                else: 
+                    ax1.plot(last_points[:, 0], last_points[:, 1],
+                             '--', c=sec_color)
+                    ax1.scatter(last_points[:, 0], last_points[:, 1],
+                                marker=marker, c='w', edgecolors=sec_color,
+                                label='E={:.1f}, UA2={:.1f}'.format(Ebeam, UA2))
+                    ax2.plot(last_points[:, 0], last_points[:, 2],
+                             '--o', c=sec_color, mfc='w', mec=sec_color)
+                    ax3.plot(last_points[:, 2], last_points[:, 1],
+                             '--', c=sec_color)
+                    ax3.scatter(last_points[:, 2], last_points[:, 1],
+                                marker=marker, c='w', edgecolors=sec_color)
 
             if not plot_all:
                 ax1.set_title('E={} keV, UA2={} kV, UB2={:.1f} kV, '
@@ -1274,3 +1277,44 @@ def plot_fan3d(traj_list, geom, Ebeam, UA2, Btor, Ipl,
 
     # set position
     ax.view_init(elev=elev, azim=azim)
+
+#%%
+def plot_RV_prim(traj_list, geom, Ebeam, UA2, Btor, Ipl, plot_analyzer=False):
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+    # fig, (ax1, ax3) = plt.subplots(nrows=1, ncols=2)
+
+    set_axes_param(ax1, 'X (m)', 'Y (m)')
+    set_axes_param(ax2, 'X (m)', 'Z (m)')
+    set_axes_param(ax3, 'Z (m)', 'Y (m)')
+
+    # get color cycler
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+    colors = cycle(colors)
+    # get marker cycler
+    markers = cycle(('o', 'v', '^', '<', '>', '*', 'D', 'P', 'd'))
+
+    # plot geometry
+    geom.plot(ax1, axes='XY', plot_analyzer=plot_analyzer)
+    geom.plot(ax2, axes='XZ', plot_analyzer=plot_analyzer)
+    geom.plot(ax3, axes='ZY', plot_analyzer=plot_analyzer)
+
+    ax1.set_title('E={} keV, Btor={} T, Ipl={} MA'
+                  .format(Ebeam, Btor, Ipl))
+
+    sec_color = 'r'
+    marker = 'o'
+    
+    #plot RV_prim
+    for tr in traj_list:
+        if tr.Ebeam == Ebeam and tr.U['A2'] == UA2:
+           ax1.plot(tr.RV_prim[:, 0], tr.RV_prim[:, 1],
+                    '--', c=sec_color)
+           ax2.plot(tr.RV_prim[:, 0], tr.RV_prim[:, 2],
+                    '--', c=sec_color)
+           ax3.plot(tr.RV_prim[:, 2], tr.RV_prim[:, 1],
+                    '--', c=sec_color)
+            
+    # ax1.legend()
+    plt.show()

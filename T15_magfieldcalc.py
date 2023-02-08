@@ -321,7 +321,7 @@ def save_B_geometry(corner1, corner2, res, dirname='magfield'):
 # %%
 if __name__ == '__main__':
 
-    save_data = False
+    save_data = True
 
     if input('Recalculate magnetic fields [y/n]? ') == 'y':
         try:
@@ -331,7 +331,7 @@ if __name__ == '__main__':
             print('\nNo previous magnetic field found')
 
     Btor = 1.0  # Toroidal field [Tl]
-    Ipl = 1.0  # Plasma current [MA]
+    Ipl = 2.0  # Plasma current [MA]
 
     # Define grid points to caculate B
     resolution = 0.02  # 0.05  # 0.01    # [m]
@@ -361,7 +361,7 @@ if __name__ == '__main__':
 
     # calculate plasma current field
     # *.txt with plasma current calculated in Tokameq
-    tokameq_file = '1MA_sn.txt'
+    tokameq_file = '2MA_sn.txt'
     EPS_WIRE = 0.6  # parameter to make smooth plasma approximation
     B_pl, wires_pl = calc_Bplasm(points, tokameq_file, Ipl, disc_len=disc_len)
     # sys.exit()

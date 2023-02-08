@@ -83,6 +83,12 @@ class Traj():
         self.fan_to_slits = []
         self.RV_sec_toslits = []
         self.ion_zones = []
+        
+        self.log = []
+
+    def print_log(self, s): 
+        self.log.append(s)
+        print(s)
 
     def pass_prim(self, E_interp, B_interp, geom, tmax=1e-5):
         '''
@@ -109,9 +115,12 @@ class Traj():
             # Magnetic field:
             try:
                 B_local = return_B(r, B_interp)
+                if np.isnan(B_local).any(): 
+                    self.print_log('Btor is nan, r = %s' % str(r))
+                    break
             except ValueError:
-                print('Btor Out of bounds for primaries, r = ', r)
-                print(' t = ', t)
+                self.print_log('Btor Out of bounds for primaries, r = %s' % str(r))
+                self.print_log(' t = %f' % t)
                 break
             # runge-kutta step:
             RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
@@ -121,24 +130,27 @@ class Traj():
 
             if geom.check_chamb_intersect('prim', RV_old[0, 0:3],
                                           RV_new[0, 0:3]):
-                print('Primary intersected chamber entrance')
+                self.print_log('Primary intersected chamber entrance')
                 self.IntersectGeometry['chamb'] = True
                 break
 
             plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
                                                                RV_new[0, 0:3])
             if plts_flag:
-                print('Primary intersected ' + plts_name + ' plates')
+                self.print_log('Primary intersected ' + plts_name + ' plates')
                 self.IntersectGeometry[plts_name] = True
                 break
 
             if geom.check_fw_intersect(RV_old[0, 0:3], RV_new[0, 0:3]):
-                print('Primary intersected first wall')
+                self.print_log('Primary intersected first wall')
                 break  # stop primary trajectory calculation
 
             RV_old = RV_new
             t = t + dt
             # print('t = ', t)
+        else: 
+            self.print_log('t <= tmax, t=%f' % t)
+            
 
         self.RV_prim = RV
         self.tag_prim = tag_column
@@ -172,10 +184,12 @@ class Traj():
             # Magnetic field:
             try:
                 B_local = return_B(r, B_interp)
+                if np.isnan(B_local).any(): 
+                    self.print_log('Btor is nan, r = %s' % str(r))
+                    break
             except ValueError:
-                print('Btor Out of bounds for secondaries, r = ',
-                      np.round(r, 3))
-                print(' t = ', t)
+                self.print_log('Btor Out of bounds for secondaries, r = %s' % str(np.round(r, 3)) )
+                self.print_log(' t = %s' % str(t))
                 self.B_out_of_bounds = True
                 break
             # runge-kutta step:
@@ -189,7 +203,7 @@ class Traj():
             plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
                                                                RV_new[0, 0:3])
             if plts_flag:
-                print('Secondary intersected ' + plts_name + ' plates')
+                self.print_log('Secondary intersected ' + plts_name + ' plates')
                 self.IntersectGeometrySec[plts_name] = True
 
             # find last point of the secondary trajectory
@@ -311,6 +325,9 @@ class Traj():
             r = RV_old[0, :3]
             try:
                 B_local = return_B(r, B_interp)
+                if np.isnan(B_local).any(): 
+                    self.print_log('Btor is nan, r = %s' % str(r))
+                    break
             except ValueError:
                 print('B out of bounds while passing secondary to target')
                 break
@@ -914,6 +931,15 @@ def runge_kutt(k, RV, dt, E, B):
         new coordinates and velocities
 
     '''
+    
+    if np.any(np.isnan(B)): 
+        print('NaN!!  B = ', B)
+        print('   RV = ', RV)
+    
+    if np.any(np.isnan(E)): 
+        print('NaN!!  E = ', E)
+        print('   RV = ', RV)
+    
     r = RV[0, :3]
     V = RV[0, 3:]
 
@@ -980,7 +1006,14 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
                 dz = r_aim[2]-tr.RV_sec[-1, 2]
                 print('UB2 OLD = {:.2f}, z_aim - z = {:.4f} m'
                       .format(UB2, dz))
+                
+                UB2_old = UB2 
                 UB2 = UB2 - dUB2*dz
+                if np.isnan(UB2): 
+                    tr.print_log("dUB2 = %f" % dUB2)
+                    tr.print_log("dz = %f" % dz)
+                    tr.print_log("UB2_old = %f" % UB2_old)
+                    
                 print('UB2 NEW = {:.2f}'.format(UB2))
                 attempts_opt += 1
             else:
@@ -1184,7 +1217,14 @@ def calc_zones(tr, dt, E, B, geom, slits=[2], timestep_divider=5,
                     tmax=9e-5, eps_xy=1e-3, eps_z=1)
         # make a step on primary trajectory
         r = RV_old[0, :3]
-        B_local = return_B(r, B)
+        try:
+            B_local = return_B(r, B)
+            if np.isnan(B_local).any(): 
+                tr.print_log('Btor is nan, r = %s' % str(r))
+                break
+        except ValueError:
+            print('B out of bounds while calculating zones')
+            break
         E_local = np.array([0., 0., 0.])
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
@@ -1290,7 +1330,14 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
                     eps_xy=1e-3, eps_z=1)
         # make a step on primary trajectory
         r = RV_old[0, :3]
-        B_local = return_B(r, B)
+        try: 
+            B_local = return_B(r, B)
+            if np.isnan(B_local).any(): 
+                tr.print_log('Btor is nan, r = %s' % str(r))
+                break
+        except ValueError:
+            print('B out of bounds while passing to slits')
+            break
         E_local = np.array([0., 0., 0.])
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
@@ -1675,7 +1722,6 @@ def return_E(r, Ein, U, geom):
             continue
     return Etotal
 
-
 def return_B(r, Bin):
     '''
     interpolate Magnetic field at point r
@@ -1683,6 +1729,7 @@ def return_B(r, Bin):
     Bx_interp, By_interp, Bz_interp = Bin[0], Bin[1], Bin[2]
     Bout = np.c_[Bx_interp(r), By_interp(r), Bz_interp(r)]
     return Bout
+    #return np.c_[Bin[0](r), Bin[1](r), Bin[2](r)]
 
 
 def save_E(beamline, plts_name, Ex, Ey, Ez, plts_angles, plts_geom,

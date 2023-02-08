@@ -13,13 +13,14 @@ import define_geometry as defgeom
 import copy
 import time
 import sys
+from logger import logger
 
 # %% set up main parameters
 # choose analyzer number
 analyzer = 1
 
 # toroidal field on the axis
-Btor = 2.0  # [T]
+Btor = 1.5  # [T]
 Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
@@ -31,7 +32,7 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 100., 380., 20.
+Emin, Emax, dEbeam = 100., 500., 20.
 
 # set flags
 optimizeB2 = True
@@ -43,13 +44,16 @@ save_primary = True
 pass2aim_only = True
 load_traj_from_file = False
 
+#WARNING! debagging request A LOT of memory
+debag = True
+
 #plotting flags
 plot_B = False
 
-traj2load = ['E100-340_UA24-40_alpha34.0_beta-10.0_x260y0z-3.pkl']
+traj2load = ['E140-380_UA2-2-46_alpha34.0_beta-10.0_x250y-30z19.pkl']
 
 # UA2 voltages
-UA2min, UA2max, dUA2 = -50., 50., 2. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -50., 50., 2. #-50., 50., 2. #12., 12., 2. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -114,18 +118,37 @@ if 'B' not in locals():
 else: 
     print('B already loaded')
 
+# %% activate logger
+parameters = ("Btor=" + str(Btor) + "Ipl=" + str(Ipl) + "beta_prim=" 
+              + str(geomT15.angles_dict['r0'][1]) + "r_aim=" + 
+              str(geomT15.r_dict['aim'][0]) + "++" + str(geomT15.r_dict['aim'][1])
+              + "++" + str(geomT15.r_dict['aim'][2]))
+logFile = "D:/radrefs/HIBP-T15MD-master/output/logs/" + parameters + ".txt"
+printToFile = True
+log = logger(logFile, printToFile)
+print = log.printml
+
 # %% Optimize Primary Beamline
 
 if not load_traj_from_file:
     # define list of trajectories that hit r_aim
     traj_list_B2 = []
+    if debag:
+        prim_intersect = []
+        sec_intersect = []
+        smth_is_wrong = []
     # initial beam energy range
     Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
     
     for Ebeam in Ebeam_range:
         # set different z_aim for different Ebeam
         z_shift = -3.75e-4 * Ebeam + 8.75e-2
+        if z_shift > 0.1:
+            z_shift = 0.1
+        if z_shift < -0.1:
+            z_shift = -0.1
         geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([0., 0., z_shift])
+        
         dUB2 = Ebeam/16.
         t1 = time.time()
         shot = ''
@@ -171,14 +194,21 @@ if not load_traj_from_file:
             # create new trajectory object
             tr = hb.Traj(q, m_ion, Ebeam, r0, geomT15.angles_dict['r0'][0],
                          geomT15.angles_dict['r0'][1], U_dict, dt)
+            
             # optimize B2 voltage
+            # here the trajectories calculated !!!
             tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
                                 target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
+            
             # check geometry intersection
             if True in tr.IntersectGeometry.values():
+                if debag:
+                    prim_intersect.append(tr)
                 print('NOT saved, primary intersected geometry')
                 continue
             if True in tr.IntersectGeometrySec.values():
+                if debag:
+                    sec_intersect.append(tr)
                 print('NOT saved, secondary intersected geometry')
                 continue
             # if no intersections, upldate UB2 values
@@ -188,6 +218,8 @@ if not load_traj_from_file:
                 traj_list_B2.append(tr)
                 print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
             else:
+                if debag:
+                    smth_is_wrong.append(tr)
                 print('NOT saved, sth is wrong')
             # traj_list_B2.append(tr)
     
@@ -217,12 +249,12 @@ if load_traj_from_file:
 # %% Additional plots
 hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
                   onlyE=True, marker_A2='')
-# # hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
-# #                 plot_analyzer=False, plot_traj=True, plot_all=False)
+# hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
+#                 plot_analyzer=False, plot_traj=True, plot_all=False)
 
 # hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
-#                  full_primary=False, plot_analyzer=True,
-#                  plot_det_line=True, subplots_vertical=True, scale=4)
+#                   full_primary=False, plot_analyzer=True,
+#                   plot_det_line=True, subplots_vertical=True, scale=4)
 hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
                         linestyle='-o', Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
@@ -338,3 +370,9 @@ if pass2AN:
 
 # %% Save list of trajectories
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+
+
+#%%
+#for tr in smth_is_wrong: 
+#    if np.isnan(tr.U['B2']): 
+#        first = tr; break
