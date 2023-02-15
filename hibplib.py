@@ -90,7 +90,8 @@ class Traj():
         self.log.append(s)
         print(s)
 
-    def pass_prim(self, E_interp, B_interp, geom, tmax=1e-5):
+    def pass_prim(self, E_interp, B_interp, geom, tmax=1e-5, 
+                  invisible_wall_x=5.5):
         '''
         passing primary trajectory from initial point self.RV0
         E_interp : dictionary with E field interpolants
@@ -113,20 +114,32 @@ class Traj():
             # Electric field:
             E_local = return_E(r, E_interp, self.U, geom)
             # Magnetic field:
-            try:
-                B_local = return_B(r, B_interp)
-                if np.isnan(B_local).any(): 
+            # try:
+            #     B_local = return_B(r, B_interp)
+            #     # if np.isnan(B_local).any(): 
+            #     if np.isnan(B_local[0, 0]): 
+            #         self.print_log('Btor is nan, r = %s' % str(r))
+            #         break
+            #     #if np.isnan(B_local[0, 0]): break
+            # except ValueError:
+            #     self.print_log('Btor Out of bounds for primaries, r = %s' % str(r))
+            #     self.print_log(' t = %f' % t)
+            #     break
+            # !!!
+            B_local = return_B_new(r, B_interp)
+            if np.isnan(B_local).any():
                     self.print_log('Btor is nan, r = %s' % str(r))
                     break
-            except ValueError:
-                self.print_log('Btor Out of bounds for primaries, r = %s' % str(r))
-                self.print_log(' t = %f' % t)
-                break
             # runge-kutta step:
             RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
             RV = np.vstack((RV, RV_new))
 
             tag_column = np.hstack((tag_column, 10))
+            
+            #check if out of bounds for passing to aim
+            if RV_new[0, 0] > invisible_wall_x and RV_new[0, 1] < 1.2:
+                self.print_log('primary hit invisible wall, r = %s' % str(np.round(r, 3)))
+                break
 
             if geom.check_chamb_intersect('prim', RV_old[0, 0:3],
                                           RV_new[0, 0:3]):
@@ -137,7 +150,7 @@ class Traj():
             plts_flag, plts_name = geom.check_plates_intersect(RV_old[0, 0:3],
                                                                RV_new[0, 0:3])
             if plts_flag:
-                self.print_log('Primary intersected ' + plts_name + ' plates')
+                #self.print_log('Primary intersected ' + plts_name + ' plates')
                 self.IntersectGeometry[plts_name] = True
                 break
 
@@ -157,7 +170,7 @@ class Traj():
 
     def pass_sec(self, RV0, r_aim, E_interp, B_interp, geom,
                  stop_plane_n=np.array([1., 0., 0.]), tmax=5e-5,
-                 eps_xy=1e-3, eps_z=1e-3):
+                 eps_xy=1e-3, eps_z=1e-3, invisible_wall_x=5.5):
         '''
         passing secondary trajectory from initial point RV0 to point r_aim
         with accuracy eps
@@ -182,19 +195,31 @@ class Traj():
             # Electric field:
             E_local = return_E(r, E_interp, self.U, geom)
             # Magnetic field:
-            try:
-                B_local = return_B(r, B_interp)
-                if np.isnan(B_local).any(): 
+            # try:
+            #     B_local = return_B(r, B_interp)
+            #     #if np.isnan(B_local).any(): 
+            #     #    self.print_log('Btor is nan, r = %s' % str(r))
+            #     #    break
+            #     if np.isnan(B_local[0, 0]): break
+            # except ValueError:
+            #     self.print_log('Btor Out of bounds for secondaries, r = %s' % str(np.round(r, 3)) )
+            #     self.print_log(' t = %s' % str(t))
+            #     self.B_out_of_bounds = True
+            #     break
+            #!!!
+            B_local = return_B_new(r, B_interp)
+            if np.isnan(B_local).any():
                     self.print_log('Btor is nan, r = %s' % str(r))
                     break
-            except ValueError:
-                self.print_log('Btor Out of bounds for secondaries, r = %s' % str(np.round(r, 3)) )
-                self.print_log(' t = %s' % str(t))
-                self.B_out_of_bounds = True
-                break
             # runge-kutta step:
             RV_new = runge_kutt(k, RV_old, dt, E_local, B_local)
 
+        
+            # #check if out of bounds for passing to aim
+            if RV_new[0, 0] > invisible_wall_x:
+                self.print_log('secondary hit invisible wall, r = %s' % str(np.round(r, 3)))
+                break
+                
             if geom.check_chamb_intersect('sec', RV_old[0, 0:3],
                                           RV_new[0, 0:3]):
                 # print('Secondary intersected chamber exit')
@@ -239,12 +264,14 @@ class Traj():
 
     def pass_fan(self, r_aim, E_interp, B_interp, geom,
                  stop_plane_n=np.array([1., 0., 0.]), eps_xy=1e-3, eps_z=1e-3,
-                 no_intersect=False, no_out_of_bounds=False):
+                 no_intersect=False, no_out_of_bounds=False, 
+                 invisible_wall_x=5.5):
         '''
         passing fan from initial point self.RV0
         '''
         print('\n Passing fan of trajectories')
-        self.pass_prim(E_interp, B_interp, geom)
+        self.pass_prim(E_interp, B_interp, geom, 
+                       invisible_wall_x=invisible_wall_x)
         # create a list fro secondary trajectories:
         list_sec = []
         # check intersection of primary trajectory:
@@ -257,6 +284,7 @@ class Traj():
         # 1.5 m - major radius of a torus, elon - size along Y
         mask = np.sqrt((self.RV_prim[:, 0] - geom.R)**2 +
                        (self.RV_prim[:, 1] / geom.elon)**2) <= geom.r_plasma
+        
         self.tag_prim[mask] = 11
 
         # list of initial points of secondary trajectories:
@@ -266,7 +294,8 @@ class Traj():
             RV02 = np.array([RV02])
             self.pass_sec(RV02, r_aim, E_interp, B_interp, geom,
                           stop_plane_n=stop_plane_n,
-                          eps_xy=eps_xy, eps_z=eps_z)
+                          eps_xy=eps_xy, eps_z=eps_z, 
+                          invisible_wall_x=invisible_wall_x)
             if (no_intersect and True in self.IntersectGeometrySec.values()) or \
                (no_out_of_bounds and self.B_out_of_bounds):
                 continue
@@ -277,7 +306,8 @@ class Traj():
     def pass_to_target(self, r_aim, E_interp, B_interp, geom,
                        stop_plane_n=np.array([1., 0., 0.]),
                        eps_xy=1e-3, eps_z=1e-3, dt_min=1e-10,
-                       no_intersect=False, no_out_of_bounds=False):
+                       no_intersect=False, no_out_of_bounds=False, 
+                       invisible_wall_x=5.5):
         '''
         find secondary trajectory which goes directly to target
         '''
@@ -323,21 +353,29 @@ class Traj():
         while True:
             # make a small step along primary trajectory
             r = RV_old[0, :3]
-            try:
-                B_local = return_B(r, B_interp)
-                if np.isnan(B_local).any(): 
+            # try:
+            #     B_local = return_B(r, B_interp)
+            #     # if np.isnan(B_local).any(): 
+            #     #     self.print_log('Btor is nan, r = %s' % str(r))
+            #     #     break
+            #     if np.isnan(B_local[0, 0]): break
+            # except ValueError:
+            #     print('B out of bounds while passing secondary to target')
+            #     break
+            #!!!
+            B_local = return_B_new(r, B_interp)
+            if np.isnan(B_local).any():
                     self.print_log('Btor is nan, r = %s' % str(r))
                     break
-            except ValueError:
-                print('B out of bounds while passing secondary to target')
-                break
+                
             E_local = np.array([0., 0., 0.])
             RV_new = runge_kutt(self.q / self.m, RV_old, self.dt1,
                                 E_local, B_local)
             # pass new secondary trajectory
             self.pass_sec(RV_new, r_aim, E_interp, B_interp, geom,
                           stop_plane_n=stop_plane_n,
-                          eps_xy=eps_xy, eps_z=eps_z)
+                          eps_xy=eps_xy, eps_z=eps_z, 
+                          invisible_wall_x=invisible_wall_x)
             # check XY flag
             if self.IsAimXY:
                 # insert RV_new into primary traj
@@ -985,11 +1023,13 @@ def optimize_B2(tr, geom, UB2, dUB2, E, B, dt, stop_plane_n, target='aim',
         # pass fan of secondaries
         tr.pass_fan(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
                     eps_xy=eps_xy, eps_z=eps_z,
-                    no_intersect=True, no_out_of_bounds=True)
+                    no_intersect=True, no_out_of_bounds=True, 
+                    invisible_wall_x=geom.r_dict[target][0]+0.2)
         # pass trajectory to the target
         tr.pass_to_target(r_aim, E, B, geom, stop_plane_n=stop_plane_n,
                           eps_xy=eps_xy, eps_z=eps_z, dt_min=dt_min,
-                          no_intersect=True, no_out_of_bounds=True)
+                          no_intersect=True, no_out_of_bounds=True, 
+                          invisible_wall_x=geom.r_dict[target][0]+0.2)
         print('IsAimXY = ', tr.IsAimXY)
         print('IsAimZ = ', tr.IsAimZ)
         if True in tr.IntersectGeometry.values():
@@ -1217,14 +1257,21 @@ def calc_zones(tr, dt, E, B, geom, slits=[2], timestep_divider=5,
                     tmax=9e-5, eps_xy=1e-3, eps_z=1)
         # make a step on primary trajectory
         r = RV_old[0, :3]
-        try:
-            B_local = return_B(r, B)
-            if np.isnan(B_local).any(): 
-                tr.print_log('Btor is nan, r = %s' % str(r))
-                break
-        except ValueError:
-            print('B out of bounds while calculating zones')
+        # try:
+        #     B_local = return_B(r, B)
+        #     # if np.isnan(B_local).any(): 
+        #     #     tr.print_log('Btor is nan, r = %s' % str(r))
+        #     #     break
+        #     if np.isnan(B_local[0, 0]): break
+        # except ValueError:
+        #     print('B out of bounds while calculating zones')
+        #     break
+        #!!!
+        B_local = return_B_new(r, B)
+        if np.isnan(B_local).any():
+            print('Btor is nan, r = %s' % str(r))
             break
+                
         E_local = np.array([0., 0., 0.])
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
         RV_old = RV_new
@@ -1330,13 +1377,19 @@ def pass_to_slits(tr, dt, E, B, geom, target='slit', timestep_divider=10,
                     eps_xy=1e-3, eps_z=1)
         # make a step on primary trajectory
         r = RV_old[0, :3]
-        try: 
-            B_local = return_B(r, B)
-            if np.isnan(B_local).any(): 
-                tr.print_log('Btor is nan, r = %s' % str(r))
-                break
-        except ValueError:
-            print('B out of bounds while passing to slits')
+        # try: 
+        #     B_local = return_B(r, B)
+        #     # if np.isnan(B_local).any(): 
+        #     #     tr.print_log('Btor is nan, r = %s' % str(r))
+        #     #     break
+        #     if np.isnan(B_local[0, 0]): break
+        # except ValueError:
+        #     print('B out of bounds while passing to slits')
+        #     break
+        #!!!
+        B_local = return_B_new(r, B)
+        if np.isnan(B_local).any():
+            print('Btor is nan, r = %s' % str(r))
             break
         E_local = np.array([0., 0., 0.])
         RV_new = runge_kutt(k, RV_old, tr.dt1, E_local, B_local)
@@ -1912,9 +1965,9 @@ def read_B(Btor, Ipl, PF_dict, dirname='magfield', interp=True, plot=False):
     Bz = B[:, 2].reshape(grid.shape[1:])
     if interp:
         # make an interpolation of B
-        Bx_interp = RegularGridInterpolator((x, y, z), Bx)
-        By_interp = RegularGridInterpolator((x, y, z), By)
-        Bz_interp = RegularGridInterpolator((x, y, z), Bz)
+        Bx_interp = RegularGridInterpolator((x, y, z), Bx, bounds_error = False)
+        By_interp = RegularGridInterpolator((x, y, z), By, bounds_error = False)
+        Bz_interp = RegularGridInterpolator((x, y, z), Bz, bounds_error = False)
         print('Interpolants for magnetic field created')
         B_list = [Bx_interp, By_interp, Bz_interp]
     else:
@@ -2090,3 +2143,167 @@ def save_png(fig, name, save_dir='output'):
         fig_savename = str(name + '.png')
         fig.savefig(save_dir + '/' + fig_savename, bbox_inches='tight')
         print('LOG: Figure ' + fig_savename + ' saved')
+
+#%% Interpolator
+
+class MagFieldInterpolator():
+    '''
+    Interpolates vector on 3d grid with equal steps
+    '''
+    
+    def __init__(self, grid, volume_corner1, volume_corner2, resolution, B):
+        self.grid = grid
+        self.volume_corner1 = volume_corner1
+        self.volume_corner2 = volume_corner2
+        self.res = resolution
+        self.B = B
+    
+    def __call__(self, point):
+        #if point is outside the volume - return array of np.nan-s
+        if np.any(point - self.volume_corner1 - self.res <= 0) or np.any(self.volume_corner2 - point - self.res <= 0):
+            return np.full((1, 3), np.nan)[0]
+        
+        #finding indexes of left corner of volume with point
+        indexes_float = (point - self.volume_corner1)/self.res // 1
+        indexes = [[0]*3]*8
+        for i in range(3):
+            indexes[0][i] = int(indexes_float[i])
+        
+        # finding weights for all dots close to point
+        '''
+        delta_x = [x2 - x, x - x1]
+        point = [x, y, z]
+        '''
+        
+        i00 = indexes[0][0]
+        j01 = indexes[0][1]
+        k02 = indexes[0][2]
+        
+        left_bottom = self.grid[:, i00,     j01,     k02]        
+        right_top   = self.grid[:, i00 + 1, j01 + 1, k02 + 1]
+        #delta = (right_top - point,   point - left_bottom)
+        
+        delta_x = [right_top[0] - point[0],   point[0] - left_bottom[0] ] 
+        delta_y = [right_top[1] - point[1],   point[1] - left_bottom[1] ]  
+        delta_z = [right_top[2] - point[2],   point[2] - left_bottom[2] ] 
+        
+        res_cubic = self.res**3
+        number = 0
+        weights = [0.]*8
+        for i in range(2):
+            for j in range (2):
+                for k in range(2):
+                    weights[number] = delta_x[i]*delta_y[j]*delta_z[k]/res_cubic
+                    number += 1
+
+        # weights.append((delta_x2)*(y2 - y)*(z2 - z)/(res_cubic))
+        # weights.append((delta_x2)*(y2 - y)*(z - z1)/(res_cubic))
+        # weights.append((delta_x2)*(y - y1)*(z2 - z)/(res_cubic))
+        # weights.append((delta_x2)*(y - y1)*(z - z1)/(res_cubic))
+        # weights.append((x - x1)*(y2 - y)*(z2 - z)/(res_cubic))
+        # weights.append((x - x1)*(y2 - y)*(z - z1)/(res_cubic))
+        # weights.append((x - x1)*(y - y1)*(z2 - z)/(res_cubic))
+        # weights.append((x - x1)*(y - y1)*(z - z1)/(res_cubic))
+        
+        #finding interpolation
+        Bx = 0.0
+        By = 0.0
+        Bz = 0.0
+
+#        for i in range(8):
+#            Bx += weights[i]*self.B[0][indexes[i][0], indexes[i][1], indexes[i][2]]
+#            By += weights[i]*self.B[1][indexes[i][0], indexes[i][1], indexes[i][2]]
+#            Bz += weights[i]*self.B[2][indexes[i][0], indexes[i][1], indexes[i][2]]
+        
+        _Bx = self.B[0]
+        _By = self.B[1]
+        _Bz = self.B[2]
+        for ijk in range(8):
+            i = ( ijk >> 2 ) % 2
+            j = ( ijk >> 1 ) % 2
+            k =   ijk % 2 
+            
+            Bx += weights[ijk]* _Bx[i00 + i, j01 + j, k02 + k]
+            By += weights[ijk]* _By[i00 + i, j01 + j, k02 + k]
+            Bz += weights[ijk]* _Bz[i00 + i, j01 + j, k02 + k]
+
+        return np.array([[Bx, By, Bz]])
+    
+# %%
+# read_B for tests
+
+def read_B_new(Btor, Ipl, PF_dict, dirname='magfield', interp=True, plot=False):
+    '''
+    read Magnetic field values and create Bx, By, Bz, rho interpolants
+    '''
+    print('\n Reading Magnetic field')
+    B_dict = {}
+    for filename in os.listdir(dirname):
+        if 'old' in filename:
+            continue
+        elif filename.endswith('.dat'):
+            with open(dirname + '/' + filename, 'r') as f:
+                volume_corner1 = [float(i) for i in f.readline().split()[0:3]]
+                volume_corner2 = [float(i) for i in f.readline().split()[0:3]]
+                resolution = float(f.readline().split()[0])
+            continue
+        elif 'Tor' in filename:
+            print('Reading toroidal magnetic field...')
+            B_read = np.load(dirname + '/' + filename) * Btor
+            name = 'Tor'
+
+        elif 'Plasm_{}MA'.format(int(Ipl)) in filename:
+            print('Reading plasma field...')
+            B_read = np.load(dirname + '/' + filename)  # * Ipl
+            name = 'Plasm'
+
+        else:
+            name = filename.replace('magfield', '').replace('.npy', '')
+            print('Reading {} magnetic field...'.format(name))
+            Icir = PF_dict[name]
+            print('Current = ', Icir)
+            B_read = np.load(dirname + '/' + filename) * Icir
+
+        B_dict[name] = B_read
+
+    # create grid of points
+    grid = np.mgrid[volume_corner1[0]:volume_corner2[0]:resolution,
+                    volume_corner1[1]:volume_corner2[1]:resolution,
+                    volume_corner1[2]:volume_corner2[2]:resolution]
+
+    B = np.zeros_like(B_read)
+    for key in B_dict.keys():
+        B += B_dict[key]
+
+#    cutoff = 10.0
+#    Babs = np.linalg.norm(B, axis=1)
+#    B[Babs > cutoff] = [np.nan, np.nan, np.nan]
+
+    # plot B stream
+    if plot:
+        hbplot.plot_B_stream(B, volume_corner1, volume_corner2, resolution, grid,
+                         plot_sep=False, dens=2.0)
+    else: 
+        print('B loaded without plotting')
+
+    Bx = B[:, 0].reshape(grid.shape[1:])
+    By = B[:, 1].reshape(grid.shape[1:])
+    Bz = B[:, 2].reshape(grid.shape[1:])
+    if interp:
+        # make an interpolation of B
+        B_list = MagFieldInterpolator(grid, volume_corner1, volume_corner2, resolution, [Bx, By, Bz])
+        print('Interpolants for magnetic field created')
+    else:
+        B_list = [Bx, By, Bz]
+
+    return B_list
+
+#%%
+#return_B for tests
+
+def return_B_new(r, Bin):
+    '''
+    interpolate Magnetic field at point r
+    '''
+
+    return Bin(r)

@@ -40,7 +40,7 @@ def define_geometry(analyzer=1):
     # coordinates of the injection port [m]
     xport_in = 2.136  # 1.5 + 0.726
     yport_in = 1.189  # 1.064
-    zport_in = 0.019  # 0.0
+    zport_in = 0.0  # 0.019
     geom.r_dict['port_in'] = np.array([xport_in, yport_in, zport_in])
 
     # distance from the injection port to the Alpha2 plates
@@ -60,8 +60,8 @@ def define_geometry(analyzer=1):
     # AIM position (BEFORE the Secondary beamline) [m]
     if analyzer == 1:
         xaim = 2.5  # 2.6
-        yaim = -0.4 #-0.1  # -0.15  # -0.25
-        zaim = 0.1 #zport_in  # 0.0
+        yaim = 0.0 #-0.1  # -0.15  # -0.25
+        zaim = 0.0 #zport_in  # 0.0
         # alpha and beta angles of the SECONDARY beamline [deg]
         alpha_sec = 10.
         beta_sec = 12. #15. #12.

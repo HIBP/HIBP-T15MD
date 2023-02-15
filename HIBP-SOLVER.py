@@ -13,7 +13,7 @@ import define_geometry as defgeom
 import copy
 import time
 import sys
-from logger import logger
+# from logger import logger
 
 # %% set up main parameters
 # choose analyzer number
@@ -50,7 +50,7 @@ debag = True
 #plotting flags
 plot_B = False
 
-traj2load = ['E140-380_UA2-2-46_alpha34.0_beta-10.0_x250y-30z19.pkl']
+traj2load = ['E100-380_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl']
 
 # UA2 voltages
 UA2min, UA2max, dUA2 = -50., 50., 2. #-50., 50., 2. #12., 12., 2. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
@@ -114,19 +114,19 @@ pf_coils = hb.import_PFcoils('PFCoils.dat')
 PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
 if 'B' not in locals():
     dirname = 'magfield'
-    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname, plot=plot_B)
+    B = hb.read_B_new(Btor, Ipl, PF_dict, dirname=dirname, plot=plot_B)
 else: 
     print('B already loaded')
 
 # %% activate logger
-parameters = ("Btor=" + str(Btor) + "Ipl=" + str(Ipl) + "beta_prim=" 
-              + str(geomT15.angles_dict['r0'][1]) + "r_aim=" + 
-              str(geomT15.r_dict['aim'][0]) + "++" + str(geomT15.r_dict['aim'][1])
-              + "++" + str(geomT15.r_dict['aim'][2]))
-logFile = "D:/radrefs/HIBP-T15MD-master/output/logs/" + parameters + ".txt"
-printToFile = True
-log = logger(logFile, printToFile)
-print = log.printml
+# parameters = ("Btor=" + str(Btor) + "Ipl=" + str(Ipl) + "beta_prim=" 
+#               + str(geomT15.angles_dict['r0'][1]) + "r_aim=" + 
+#               str(geomT15.r_dict['aim'][0]) + "++" + str(geomT15.r_dict['aim'][1])
+#               + "++" + str(geomT15.r_dict['aim'][2]))
+# logFile = "D:/radrefs/HIBP-T15MD-master/output/logs/" + parameters + ".txt"
+# printToFile = True
+# log = logger(logFile, printToFile)
+# print = log.printml
 
 # %% Optimize Primary Beamline
 
