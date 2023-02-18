@@ -10,9 +10,12 @@ import numpy as np
 import hibplib as hb
 import hibpplotlib as hbplot
 import define_geometry as defgeom
+import matplotlib.pyplot as plt
 import copy
 import time
 import sys
+import math
+import os
 # from logger import logger
 
 # %% set up main parameters
@@ -45,7 +48,7 @@ pass2aim_only = True
 load_traj_from_file = False
 
 #WARNING! debagging request A LOT of memory
-debag = True
+debag = False
 
 #plotting flags
 plot_B = False
@@ -255,9 +258,82 @@ hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
 # hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
 #                   full_primary=False, plot_analyzer=True,
 #                   plot_det_line=True, subplots_vertical=True, scale=4)
-hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
+anglesdict = hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
                         linestyle='-o', Ebeam='all')
 # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
+
+# get data to create path name
+zport_in = 0 if geomT15.r_dict['port_in'][2] == 0 else geomT15.r_dict['port_in'][2]
+beta_prim = int(geomT15.angles_dict['B2'][1])
+y_aim = int(geomT15.r_dict['aim'][1] * 1000)
+z_aim = int(geomT15.r_dict['aim'][2] * 1000)
+
+# path to create folder and save plots and log.txt
+path = os.path.join("C:\\Users\\ammos\\YandexDisk-ammosov.ium@phystech.edu\\Оптимизация точки пристрелки",
+                     f"B_tor{int(Btor)}", f"Ipl{int(Ipl)}",
+                     f"prim_z{zport_in}_beta{beta_prim}",
+                     f"y_aim{y_aim}_z_aim{z_aim}")
+
+# create new directory
+os.makedirs(path, exist_ok=True)
+
+""" save plots to path """
+
+if os.path.exists(path):
+# get info about plots
+    fig_nums = plt.get_fignums()  
+    figs = [plt.figure(n) for n in fig_nums]
+
+# resize and save plots
+    figs[0].set_size_inches(20, 12.5)
+    figs[0].axes[0].set_xlim(1.0, 2.6)
+    figs[0].axes[0].set_ylim(-0.5, 1.5)
+    figs[0].savefig(os.path.join(path, "grid.png"), dpi=300)
+    
+    figs[1].set_size_inches(20, 12.5)
+    figs[1].savefig(os.path.join(path, "exit_alpha.png"), dpi=300)
+    
+    figs[2].set_size_inches(20, 12.5)
+    figs[2].savefig(os.path.join(path, "exit_beta.png"), dpi=300)
+    
+# close opened plots
+
+    plt.close(figs[0])
+    plt.close(figs[1])
+    plt.close(figs[2])
+
+""" get min max of exit alpha and beta """
+
+# create two arrays with all exit alphas and betas
+array = np.array(list(anglesdict.items()), dtype=object)
+alphas = []
+betas = []
+
+# add all alphas and betas from anglesdict to arrays
+for i in range(len(array)):
+    for j in range(len(array[i][1])):
+        alphas.append(array[i][1][j][2])
+        betas.append(array[i][1][j][3])
+        
+# find min max in exit alphas and betas and create formatted string
+# example "0 : 48 / -17 : 54"
+diapason = f"{math.floor(min(alphas))} : {math.ceil(max(alphas))} / {math.floor(min(betas))} \
+: {math.ceil(max(betas))}"
+
+"""save file log.txt with initital parameters to folder"""
+
+# create list with main parameters
+logfile = [f"Path: {path}",
+           f"B_tor: {Btor}", 
+           f"Ipl: {Ipl}", 
+           f"prim_z: {geomT15.r_dict['port_in'][2]}", f"beta: {geomT15.angles_dict['B2'][1]}",
+           f"y_aim: {geomT15.r_dict['aim'][1]}", f"z_aim: {geomT15.r_dict['aim'][2]}",
+           diapason]
+
+# save log.txt to path
+np.savetxt(os.path.join(path, "log.txt"), logfile, fmt='%s')
+# print log.txt to console
+print(*logfile, sep = '\n')
 
 # %% Optimize Secondary Beamline
 t1 = time.time()

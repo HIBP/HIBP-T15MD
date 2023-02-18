@@ -1156,7 +1156,7 @@ def plot_sec_angles(traj_list, Btor, Ipl, Ebeam='all', linestyle='-o'):
     ax1.axis('tight')
     ax2.axis('tight')
     plt.show()
-
+    return angles_dict
 
 # %%
 def plot_lam(traj_list, config, rho_interp, Ebeam='all', slits=range(5)):
