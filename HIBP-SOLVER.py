@@ -305,7 +305,7 @@ if os.path.exists(path):
 """ get min max of exit alpha and beta """
 
 # create two arrays with all exit alphas and betas
-array = np.array(list(anglesdict.items()), dtype=object)
+array = list(anglesdict.items())
 alphas = []
 betas = []
 
