@@ -24,7 +24,7 @@ analyzer = 1
 
 # toroidal field on the axis
 Btor = 1.5  # [T]
-Ipl = 1.0  # Plasma current [MA]
+Ipl = 2.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
 # timestep [sec]
