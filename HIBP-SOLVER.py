@@ -270,7 +270,7 @@ z_aim = int(geomT15.r_dict['aim'][2] * 1000)
 
 # path to create folder and save plots and log.txt
 path = os.path.join("D:\YandexDisk\Курчатовский институт\Мои работы\Поворот первичного бимлайна на Т-15МД\Оптимизация точки пристрелки",
-                     f"B_tor{int(Btor)}", f"Ipl{int(Ipl)}",
+                     f"B_tor{(Btor)}", f"Ipl{(Ipl)}",
                      f"prim_z{zport_in}_beta{beta_prim}",
                      f"y_aim{y_aim}_z_aim{z_aim}")
 
