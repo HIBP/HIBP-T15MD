@@ -23,8 +23,8 @@ import os
 analyzer = 1
 
 # toroidal field on the axis
-Btor = 1.5  # [T]
-Ipl = 2.0  # Plasma current [MA]
+Btor = 1.0  # [T]
+Ipl = 1.0  # Plasma current [MA]
 print('\nShot parameters: Btor = {} T, Ipl = {} MA'. format(Btor, Ipl))
 
 # timestep [sec]
@@ -39,14 +39,15 @@ Emin, Emax, dEbeam = 100., 500., 20.
 
 #%% set flags
 optimizeB2 = True
-optimizeA3B3 = False
+optimizeA3B3 = True
 calculate_zones = False
 pass2AN = False
 save_radref = False
 save_primary = True
-pass2aim_only = True
+pass2aim_only = False
 load_traj_from_file = False
 save_grids_and_angles = True
+adaptive_aim = False
 
 #WARNING! debagging request A LOT of memory
 debag = False
@@ -147,13 +148,16 @@ if not load_traj_from_file:
     Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
     
     for Ebeam in Ebeam_range:
-        # set different z_aim for different Ebeam
-        z_shift = -3.75e-4 * Ebeam + 8.75e-2
-        if z_shift > 0.1:
-            z_shift = 0.1
-        if z_shift < -0.1:
-            z_shift = -0.1
-        geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([0., 0., z_shift])
+        # set shifted aim
+        epsilon = 1 #angles less than epsilon will be treated as zero
+        x_shift = 0.
+        y_shift = 0.
+        z_shift = 0. #-3.75e-4 * Ebeam + 8.75e-2
+        # if z_shift > 0.1:
+        #     z_shift = 0.1
+        # if z_shift < -0.1:
+        #     z_shift = -0.1
+        geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
         
         dUB2 = Ebeam/16.
         t1 = time.time()
@@ -193,6 +197,13 @@ if not load_traj_from_file:
                 UB2 = UB2_range[i]
             if not optimizeA3B3:
                 UA3, UB3 = UA3_range[i], UB3_range[i]
+                
+            #reset aim point
+            x_shift = 0.
+            y_shift = 0.
+            z_shift = 0. 
+            geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
+            
             print('\n\nE = {} keV; UA2 = {:.2f} kV\n'.format(Ebeam, UA2))
             # dict of starting voltages
             U_dict = {'A2': UA2, 'B2': UB2,
@@ -221,8 +232,46 @@ if not load_traj_from_file:
             UB2 = tr.U['B2']
             # check aim
             if tr.IsAimXY and tr.IsAimZ:
-                traj_list_B2.append(tr)
-                print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                
+                #check exit angles
+                Vx = tr.RV_sec[-1, 3]  # Vx
+                Vy = tr.RV_sec[-1, 4]  # Vy
+                Vz = tr.RV_sec[-1, 5]  # Vz
+                
+                alpha = np.arctan(Vy/np.sqrt(Vx**2 + Vz**2))*180/np.pi - geomT15.angles_dict['A3'][0]
+                beta = np.arctan(-Vz/Vx)*180/np.pi - geomT15.angles_dict['A3'][1]
+                
+                if adaptive_aim:
+                    #if they are close to secondary beamline angles - save trajectory
+                    if abs(alpha) < epsilon and abs(beta) < epsilon:
+                        traj_list_B2.append(tr)
+                        print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                        
+                    #else - update aim and optimize again    
+                    else:
+                        if abs(alpha) > epsilon:
+                            x_shhift = 0.3*0.1*math.copysign(1, alpha)*math.sin(math.degrees(geomT15.angles_dict['A3'][0]))
+                            y_shift =  0.3*0.1*math.copysign(1, alpha)*math.cos(math.degrees(geomT15.angles_dict['A3'][0]))
+                        if abs(beta) > epsilon:
+                            z_shift =  0.2*0.2*math.copysign(1, beta)
+                        geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
+                        
+                        tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
+                                            target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
+                        
+                        if True in tr.IntersectGeometry.values():
+                            print('NOT saved, primary intersected geometry')
+                            continue
+                        if True in tr.IntersectGeometrySec.values():
+                            print('NOT saved, secondary intersected geometry')
+                            continue
+                        if tr.IsAimXY and tr.IsAimZ:
+                            traj_list_B2.append(tr)
+                            print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                else:
+                    traj_list_B2.append(tr)
+                    print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                    
             else:
                 if debag:
                     smth_is_wrong.append(tr)
