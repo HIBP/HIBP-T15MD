@@ -10,9 +10,13 @@ import numpy as np
 import hibplib as hb
 import hibpplotlib as hbplot
 import define_geometry as defgeom
+import matplotlib.pyplot as plt
 import copy
 import time
 import sys
+import math
+import os
+# from logger import logger
 
 # %% set up main parameters
 # choose analyzer number
@@ -31,17 +35,32 @@ q = 1.602176634e-19  # electron charge [Co]
 m_ion = 204.3833 * 1.6605e-27  # Tl ion mass [kg]
 
 # beam energy
-Emin, Emax, dEbeam = 240., 240., 20.
+Emin, Emax, dEbeam = 100., 500., 20.
 
-# set flags
+#%% set flags
 optimizeB2 = True
 optimizeA3B3 = True
 calculate_zones = False
-pass2AN = True
+pass2AN = False
 save_radref = False
+save_primary = True
+pass2aim_only = False
+load_traj_from_file = False
+save_grids_and_angles = True
+adaptive_aim = False
 
+#WARNING! debagging request A LOT of memory
+debag = False
+
+#plotting flags
+plot_B = False
+
+#%%set paths
+results_folder = "D:\YandexDisk\Курчатовский институт\Мои работы\Поворот первичного бимлайна на Т-15МД\Оптимизация точки пристрелки"
+traj2load = ['E100-380_UA23-33_alpha34.0_beta-10.0_x260y-20z1.pkl']
+#%% set voltages
 # UA2 voltages
-UA2min, UA2max, dUA2 = 14., 14., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
+UA2min, UA2max, dUA2 = -50., 50., 2. #-50., 50., 2. #12., 12., 2. #-50., 50., 2.  #0., 34., 2.  # -3, 33., 3.  # -3., 30., 3.
 NA2_points = 10
 
 # B2 plates voltage
@@ -102,108 +121,275 @@ pf_coils = hb.import_PFcoils('PFCoils.dat')
 PF_dict = hb.import_PFcur('{}MA_sn.txt'.format(int(abs(Ipl))), pf_coils)
 if 'B' not in locals():
     dirname = 'magfield'
-    B = hb.read_B(Btor, Ipl, PF_dict, dirname=dirname)
+    B = hb.read_B_new(Btor, Ipl, PF_dict, dirname=dirname, plot=plot_B)
+else: 
+    print('B already loaded')
+
+# %% activate logger
+# parameters = ("Btor=" + str(Btor) + "Ipl=" + str(Ipl) + "beta_prim=" 
+#               + str(geomT15.angles_dict['r0'][1]) + "r_aim=" + 
+#               str(geomT15.r_dict['aim'][0]) + "++" + str(geomT15.r_dict['aim'][1])
+#               + "++" + str(geomT15.r_dict['aim'][2]))
+# logFile = "D:/radrefs/HIBP-T15MD-master/output/logs/" + parameters + ".txt"
+# printToFile = True
+# log = logger(logFile, printToFile)
+# print = log.printml
 
 # %% Optimize Primary Beamline
-# define list of trajectories that hit r_aim
-traj_list_B2 = []
-# initial beam energy range
-Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
 
-for Ebeam in Ebeam_range:
-    # set different z_aim for different Ebeam
-    z_shift = -3.75e-4 * Ebeam + 8.75e-2
-    geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([0., 0., z_shift])
-    dUB2 = Ebeam/16.
-    t1 = time.time()
-    shot = ''
-    input_fname = ''
-    print('\n>>INPUT FILE: ', input_fname)
-    if input_fname != '':
-        exp_voltages = np.loadtxt(input_fname)
-        indexes = np.linspace(1, exp_voltages.shape[0]-1,
-                              NA2_points, dtype=int)
-    if optimizeB2:
-        optimizeA3B3 = True
-        target = 'aim_zshift'  # 'aim'  # 'aimB3'
-        # A2 plates voltage
-        UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)
-        # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
-        eps_xy, eps_z = 1e-3, 1e-3
-    else:
-        target = 'aim'
-        UA2_range = exp_voltages[indexes, 1]
-        UB2_range = exp_voltages[indexes, 2]
-        eps_xy, eps_z = 1e-3, 1.
-    if not optimizeA3B3:
-        target = 'aim'
-        UA3_range = exp_voltages[indexes, 3]
-        UB3_range = exp_voltages[indexes, 4]
-        eps_xy, eps_z = 1e-3, 1.
-    if optimizeB2:
-        print('\n Primary beamline optimization')
-    else:
-        print('\n Calculating primary beamline')
-
-    # UA2 loop
-    for i in range(UA2_range.shape[0]):
-        UA2 = UA2_range[i]
-        if not optimizeB2:
-            UB2 = UB2_range[i]
-        if not optimizeA3B3:
-            UA3, UB3 = UA3_range[i], UB3_range[i]
-        print('\n\nE = {} keV; UA2 = {:.2f} kV\n'.format(Ebeam, UA2))
-        # dict of starting voltages
-        U_dict = {'A2': UA2, 'B2': UB2,
-                  'A3': UA3, 'B3': UB3, 'A4': UA4, 'an': Ebeam/(2*G)}
-        # create new trajectory object
-        tr = hb.Traj(q, m_ion, Ebeam, r0, geomT15.angles_dict['r0'][0],
-                     geomT15.angles_dict['r0'][1], U_dict, dt)
-        # optimize B2 voltage
-        tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
-                            target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
-        # check geometry intersection
-        if True in tr.IntersectGeometry.values():
-            print('NOT saved, primary intersected geometry')
-            continue
-        if True in tr.IntersectGeometrySec.values():
-            print('NOT saved, secondary intersected geometry')
-            continue
-        # if no intersections, upldate UB2 values
-        UB2 = tr.U['B2']
-        # check aim
-        if tr.IsAimXY and tr.IsAimZ:
-            traj_list_B2.append(tr)
-            print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+if not load_traj_from_file:
+    # define list of trajectories that hit r_aim
+    traj_list_B2 = []
+    if debag:
+        prim_intersect = []
+        sec_intersect = []
+        smth_is_wrong = []
+    # initial beam energy range
+    Ebeam_range = np.arange(Emin, Emax + dEbeam, dEbeam)  # [keV]
+    
+    for Ebeam in Ebeam_range:
+        # set shifted aim
+        epsilon = 1 #angles less than epsilon will be treated as zero
+        x_shift = 0.
+        y_shift = 0.
+        z_shift = 0. #-3.75e-4 * Ebeam + 8.75e-2
+        # if z_shift > 0.1:
+        #     z_shift = 0.1
+        # if z_shift < -0.1:
+        #     z_shift = -0.1
+        geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
+        
+        dUB2 = Ebeam/16.
+        t1 = time.time()
+        shot = ''
+        input_fname = ''
+        print('\n>>INPUT FILE: ', input_fname)
+        if input_fname != '':
+            exp_voltages = np.loadtxt(input_fname)
+            indexes = np.linspace(1, exp_voltages.shape[0]-1,
+                                  NA2_points, dtype=int)
+        if optimizeB2:
+            optimizeA3B3 = True
+            target = 'aim_zshift'  # 'aim'  # 'aimB3'
+            # A2 plates voltage
+            UA2_range = np.arange(UA2min, UA2max + dUA2, dUA2)
+            # UA2_range = np.linspace(UA2min, UA2max, NA2_points)  # [kV]
+            eps_xy, eps_z = 1e-3, 1e-3
         else:
-            print('NOT saved, sth is wrong')
-        # traj_list_B2.append(tr)
-
-t2 = time.time()
-if optimizeB2:
-    print('\n B2 voltage optimized, t = {:.1f} s\n'.format(t2-t1))
-else:
-    print('\n Trajectories to r_aim calculated, t = {:.1f} s\n'.format(t2-t1))
+            target = 'aim'
+            UA2_range = exp_voltages[indexes, 1]
+            UB2_range = exp_voltages[indexes, 2]
+            eps_xy, eps_z = 1e-3, 1.
+        if not optimizeA3B3:
+            target = 'aim'
+            UA3_range = exp_voltages[indexes, 3]
+            UB3_range = exp_voltages[indexes, 4]
+            eps_xy, eps_z = 1e-3, 1.
+        if optimizeB2:
+            print('\n Primary beamline optimization')
+        else:
+            print('\n Calculating primary beamline')
+    
+        # UA2 loop
+        for i in range(UA2_range.shape[0]):
+            UA2 = UA2_range[i]
+            if not optimizeB2:
+                UB2 = UB2_range[i]
+            if not optimizeA3B3:
+                UA3, UB3 = UA3_range[i], UB3_range[i]
+                
+            #reset aim point
+            x_shift = 0.
+            y_shift = 0.
+            z_shift = 0. 
+            geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
+            
+            print('\n\nE = {} keV; UA2 = {:.2f} kV\n'.format(Ebeam, UA2))
+            # dict of starting voltages
+            U_dict = {'A2': UA2, 'B2': UB2,
+                      'A3': UA3, 'B3': UB3, 'A4': UA4, 'an': Ebeam/(2*G)}
+            # create new trajectory object
+            tr = hb.Traj(q, m_ion, Ebeam, r0, geomT15.angles_dict['r0'][0],
+                         geomT15.angles_dict['r0'][1], U_dict, dt)
+            
+            # optimize B2 voltage
+            # here the trajectories calculated !!!
+            tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
+                                target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
+            
+            # check geometry intersection
+            if True in tr.IntersectGeometry.values():
+                if debag:
+                    prim_intersect.append(tr)
+                print('NOT saved, primary intersected geometry')
+                continue
+            if True in tr.IntersectGeometrySec.values():
+                if debag:
+                    sec_intersect.append(tr)
+                print('NOT saved, secondary intersected geometry')
+                continue
+            # if no intersections, upldate UB2 values
+            UB2 = tr.U['B2']
+            # check aim
+            if tr.IsAimXY and tr.IsAimZ:
+                
+                #check exit angles
+                Vx = tr.RV_sec[-1, 3]  # Vx
+                Vy = tr.RV_sec[-1, 4]  # Vy
+                Vz = tr.RV_sec[-1, 5]  # Vz
+                
+                alpha = np.arctan(Vy/np.sqrt(Vx**2 + Vz**2))*180/np.pi - geomT15.angles_dict['A3'][0]
+                beta = np.arctan(-Vz/Vx)*180/np.pi - geomT15.angles_dict['A3'][1]
+                
+                if adaptive_aim:
+                    #if they are close to secondary beamline angles - save trajectory
+                    if abs(alpha) < epsilon and abs(beta) < epsilon:
+                        traj_list_B2.append(tr)
+                        print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                        
+                    #else - update aim and optimize again    
+                    else:
+                        if abs(alpha) > epsilon:
+                            x_shhift = 0.3*0.1*math.copysign(1, alpha)*math.sin(math.degrees(geomT15.angles_dict['A3'][0]))
+                            y_shift =  0.3*0.1*math.copysign(1, alpha)*math.cos(math.degrees(geomT15.angles_dict['A3'][0]))
+                        if abs(beta) > epsilon:
+                            z_shift =  0.2*0.2*math.copysign(1, beta)
+                        geomT15.r_dict['aim_zshift'] = geomT15.r_dict['aim'] + np.array([x_shift, y_shift, z_shift])
+                        
+                        tr = hb.optimize_B2(tr, geomT15, UB2, dUB2, E, B, dt, stop_plane_n,
+                                            target, optimizeB2, eps_xy=eps_xy, eps_z=eps_z)
+                        
+                        if True in tr.IntersectGeometry.values():
+                            print('NOT saved, primary intersected geometry')
+                            continue
+                        if True in tr.IntersectGeometrySec.values():
+                            print('NOT saved, secondary intersected geometry')
+                            continue
+                        if tr.IsAimXY and tr.IsAimZ:
+                            traj_list_B2.append(tr)
+                            print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                else:
+                    traj_list_B2.append(tr)
+                    print('\n Trajectory saved, UB2={:.2f} kV'.format(tr.U['B2']))
+                    
+            else:
+                if debag:
+                    smth_is_wrong.append(tr)
+                print('NOT saved, sth is wrong')
+            # traj_list_B2.append(tr)
+    
+    t2 = time.time()
+    if optimizeB2:
+        print('\n B2 voltage optimized, t = {:.1f} s\n'.format(t2-t1))
+    else:
+        print('\n Trajectories to r_aim calculated, t = {:.1f} s\n'.format(t2-t1))
 
 # %%
-traj_list_passed = copy.deepcopy(traj_list_B2)
+    traj_list_passed = copy.deepcopy(traj_list_B2) 
 
 # %% Save traj list
-# hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
-sys.exit()
+    if save_primary:
+        hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+    # if pass2aim_only:
+    #     sys.exit()
 
 # %% Additional plots
-hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
-                 onlyE=True, marker_A2='')
-# hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
-#                 plot_analyzer=False, plot_traj=True, plot_all=False)
-
-hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
-                 full_primary=False, plot_analyzer=True,
-                 plot_det_line=True, subplots_vertical=True, scale=4)
-# hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
-#                         linestyle='-o', Ebeam='all')
-# hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
+    if save_grids_and_angles:
+        hbplot.plot_grid(traj_list_passed, geomT15, Btor, Ipl,
+                          onlyE=True, marker_A2='')
+        # hbplot.plot_fan(traj_list_passed, geomT15, Ebeam, UA2, Btor, Ipl,
+        #                 plot_analyzer=False, plot_traj=True, plot_all=False)
+        
+        # hbplot.plot_scan(traj_list_passed, geomT15, Ebeam, Btor, Ipl,
+        #                   full_primary=False, plot_analyzer=True,
+        #                   plot_det_line=True, subplots_vertical=True, scale=4)
+        anglesdict = hbplot.plot_sec_angles(traj_list_passed, Btor, Ipl,
+                                linestyle='-o', Ebeam='all')
+        # hbplot.plot_fan(traj_list_passed, geomT15, 240., 40., Btor, Ipl)
+        
+        # get data to create path name
+        zport_in = 0 if geomT15.r_dict['port_in'][2] == 0 else geomT15.r_dict['port_in'][2]
+        beta_prim = int(geomT15.angles_dict['B2'][1])
+        y_aim = int(geomT15.r_dict['aim'][1] * 1000)
+        z_aim = int(geomT15.r_dict['aim'][2] * 1000)
+        
+        # path to create folder and save plots and log.txt
+        path = os.path.join(results_folder,
+                             f"B_tor{(Btor)}", f"Ipl{(Ipl)}",
+                             f"prim_z{zport_in}_beta{beta_prim}",
+                             f"y_aim{y_aim}_z_aim{z_aim}")
+        
+        # create new directory
+        os.makedirs(path, exist_ok=True)
+        
+        """ save plots to path """
+        
+        if os.path.exists(path):
+        # get info about plots
+            fig_nums = plt.get_fignums()  
+            figs = [plt.figure(n) for n in fig_nums]
+        
+        # resize and save plots
+            figs[0].set_size_inches(20, 12.5)
+            figs[0].axes[0].set_xlim(1.0, 2.6)
+            figs[0].axes[0].set_ylim(-0.5, 1.5)
+            figs[0].savefig(os.path.join(path, "grid.png"), dpi=300)
+            
+            figs[1].set_size_inches(20, 12.5)
+            figs[1].savefig(os.path.join(path, "exit_alpha.png"), dpi=300)
+            
+            figs[2].set_size_inches(20, 12.5)
+            figs[2].savefig(os.path.join(path, "exit_beta.png"), dpi=300)
+            
+        # close opened plots
+        
+            plt.close(figs[0])
+            plt.close(figs[1])
+            plt.close(figs[2])
+        
+        """ get min max of exit alpha and beta """
+        
+        # create two arrays with all exit alphas and betas
+        array = list(anglesdict.items())
+        alphas = []
+        betas = []
+        
+        # add all alphas and betas from anglesdict to arrays
+        for i in range(len(array)):
+            for j in range(len(array[i][1])):
+                alphas.append(array[i][1][j][2])
+                betas.append(array[i][1][j][3])
+                
+        # find min max in exit alphas and betas and create formatted string
+        # example "0 : 48 / -17 : 54"
+        diapason = f"{math.floor(min(alphas))} : {math.ceil(max(alphas))} / {math.floor(min(betas))} \
+: {math.ceil(max(betas))}"
+        
+        """save file log.txt with initital parameters to folder"""
+        
+        # create list with main parameters
+        logfile = [f"Path: {path}",
+                   f"B_tor: {Btor}", 
+                   f"Ipl: {Ipl}", 
+                   f"prim_z: {geomT15.r_dict['port_in'][2]}", f"beta: {geomT15.angles_dict['B2'][1]}",
+                   f"y_aim: {geomT15.r_dict['aim'][1]}", f"z_aim: {geomT15.r_dict['aim'][2]}",
+                   diapason]
+        
+        # save log.txt to path
+        np.savetxt(os.path.join(path, "log.txt"), logfile, fmt='%s')
+        # print log.txt to console
+        print(*logfile, sep = '\n')
+        
+    if pass2aim_only:
+        sys.exit()
+        
+# %% load trajectory list for further optimization
+if load_traj_from_file:
+    traj_list = []
+    for name in traj2load:
+        traj_list += hb.read_traj_list(name, dirname='output/B1_I1')
+    traj_list_passed = copy.deepcopy(traj_list)
+    eps_xy, eps_z = 1e-3, 1e-3
 
 # %% Optimize Secondary Beamline
 t1 = time.time()
@@ -278,13 +464,18 @@ if pass2AN:
 # hbplot.plot_traj(traj_list_a3b3, geomT15, Ebeam, 0.0, Btor, Ipl,
 #                   full_primary=False, plot_analyzer=True,
 #                   subplots_vertical=True, scale=3.5)
-hbplot.plot_scan(traj_list_a3b3, geomT15, Ebeam, Btor, Ipl,
-                 full_primary=False, plot_analyzer=True,
-                 plot_det_line=False, subplots_vertical=True, scale=5)
 
-hbplot.plot_scan(traj_list_an, geomT15, Ebeam, Btor, Ipl,
-                 full_primary=False, plot_analyzer=True,
-                 plot_det_line=False, subplots_vertical=True, scale=5)
+# if optimizeA3B3:
+#     hbplot.plot_scan(traj_list_a3b3, geomT15, Ebeam, Btor, Ipl,
+#                  full_primary=False, plot_analyzer=True,
+#                  plot_det_line=False, subplots_vertical=True, scale=5)
+
+# if pass2AN:
+#     hbplot.plot_scan(traj_list_an, geomT15, Ebeam, Btor, Ipl,
+#                  full_primary=False, plot_analyzer=True,
+#                  plot_det_line=False, subplots_vertical=True, scale=5)
+#     hbplot.plot_grid(traj_list_an, geomT15, Btor, Ipl,
+#                  onlyE=True, marker_A2='')
 
 # %% Pass trajectory to the Analyzer
 # print('\n Optimizing entrance angle to Analyzer with A4')
@@ -311,3 +502,9 @@ hbplot.plot_scan(traj_list_an, geomT15, Ebeam, Btor, Ipl,
 
 # %% Save list of trajectories
 # hb.save_traj_list(traj_list_passed, Btor, Ipl, geomT15.r_dict[target])
+
+
+#%%
+#for tr in smth_is_wrong: 
+#    if np.isnan(tr.U['B2']): 
+#        first = tr; break
